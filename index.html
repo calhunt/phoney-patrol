@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Phoney Patrol: a Scrabble challenge drill. Real word or phoney? NWL2023.">
+<title>Phoney Patrol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+</head>
+<body>
+<style>
+:root{
+  --bg:#E6E1D2; --surface:#F4F1E6; --surface-2:#DCD5C1; --sunk:#CFC7B0;
+  --ink:#1B2320; --ink-2:#5C665E; --ink-3:#8A9189; --line:#C6BEA9;
+  --tile:#E4D3AF; --tile-ink:#22272A; --tile-edge:#BFA87A; --tile-shadow:rgba(60,45,20,.30);
+  --navy:#1D4E89; --navy-ink:#F4F1E6; --coral:#B8412B; --good:#2C6B4F; --rose:#C9857F;
+  --focus:#1D4E89;
+  --f-display:"Zilla Slab",Georgia,serif;
+  --f-body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#11191A; --surface:#1A2426; --surface-2:#243031; --sunk:#0D1415;
+    --ink:#EDE7D6; --ink-2:#98A49C; --ink-3:#6B7873; --line:#33413F;
+    --tile:#DECCA6; --tile-ink:#181C1D; --tile-edge:#A48D63; --tile-shadow:rgba(0,0,0,.55);
+    --navy:#6FA9DE; --navy-ink:#0F1718; --coral:#E5705A; --good:#54BC8B; --rose:#D2938D;
+    --focus:#6FA9DE;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11191A; --surface:#1A2426; --surface-2:#243031; --sunk:#0D1415;
+  --ink:#EDE7D6; --ink-2:#98A49C; --ink-3:#6B7873; --line:#33413F;
+  --tile:#DECCA6; --tile-ink:#181C1D; --tile-edge:#A48D63; --tile-shadow:rgba(0,0,0,.55);
+  --navy:#6FA9DE; --navy-ink:#0F1718; --coral:#E5705A; --good:#54BC8B; --rose:#D2938D;
+  --focus:#6FA9DE;
+}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);
+  -webkit-font-smoothing:antialiased;line-height:1.55}
+:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:2px}
+
+.wrap{max-width:940px;margin:0 auto;padding:22px 20px 56px;display:flex;flex-direction:column;gap:18px}
+
+/* ---- masthead ---- */
+.masthead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 20px;
+  border-bottom:1px solid var(--line);padding-bottom:14px}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,4.4vw,36px);
+  letter-spacing:-.015em;margin:0;line-height:1}
+.brand p{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);margin:7px 0 0}
+.scores{display:flex;gap:10px;align-items:stretch}
+.score{background:var(--surface);border:1px solid var(--line);border-radius:3px;
+  padding:7px 12px 8px;min-width:76px;text-align:right}
+.score b{display:block;font-family:var(--f-mono);font-weight:600;font-size:19px;
+  font-variant-numeric:tabular-nums;line-height:1.15}
+.score span{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.score.hot b{color:var(--coral)}
+
+/* ---- intro ---- */
+.intro{max-width:64ch;display:flex;flex-direction:column;gap:9px}
+.intro .lead{font-family:var(--f-display);font-weight:600;font-size:clamp(18px,2.6vw,22px);
+  line-height:1.25;margin:0;text-wrap:balance;letter-spacing:-.005em}
+.intro p{margin:0;font-size:15px;line-height:1.62;color:var(--ink-2)}
+.intro .word{font-family:var(--f-mono);font-weight:600;font-size:.88em;letter-spacing:.05em;color:var(--ink)}
+.intro .punch{font-family:var(--f-display);font-weight:600;font-size:16.5px;color:var(--navy);
+  line-height:1.35;text-wrap:balance}
+
+/* ---- letter rail ---- */
+.rail{display:grid;grid-template-columns:repeat(auto-fit,minmax(46px,1fr));gap:5px}
+.chip{font-family:var(--f-mono);background:var(--surface);color:var(--ink-2);
+  border:1px solid var(--line);border-radius:3px;padding:6px 2px 5px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:2px;transition:background .12s,color .12s}
+.chip:hover{background:var(--surface-2);color:var(--ink)}
+.chip .l{font-weight:600;font-size:14px;line-height:1}
+.chip .f{font-size:9px;font-variant-numeric:tabular-nums;color:var(--ink-3);line-height:1;min-height:9px}
+.chip[aria-selected="true"]{background:var(--navy);border-color:var(--navy);color:var(--navy-ink)}
+.chip[aria-selected="true"] .f{color:var(--navy-ink);opacity:.72}
+.chip.all{letter-spacing:.02em}
+
+/* ---- stage ---- */
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:4px;
+  padding:26px 22px 22px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.prompt{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-3);text-align:center}
+.tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-width:100%}
+.tile{position:relative;width:clamp(40px,8.4vw,62px);aspect-ratio:1/1;background:var(--tile);
+  color:var(--tile-ink);border-radius:4px;display:grid;place-items:center;
+  box-shadow:inset 0 -3px 0 var(--tile-edge), 0 2px 3px var(--tile-shadow);
+  font-family:var(--f-display);font-weight:600;font-size:clamp(22px,4.8vw,34px);line-height:1;
+  padding-bottom:3px}
+.tile sup{position:absolute;right:4px;bottom:3px;font-family:var(--f-mono);font-weight:500;
+  font-size:9px;line-height:1;opacity:.75}
+.tile.flip{animation:drop .22s ease-out both}
+@keyframes drop{from{transform:translateY(-7px);opacity:0}to{transform:none;opacity:1}}
+
+.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn{font-family:var(--f-mono);font-weight:600;font-size:12px;letter-spacing:.11em;
+  text-transform:uppercase;padding:13px 26px;border-radius:3px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface-2);color:var(--ink);
+  transition:transform .1s,background .12s}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:none}
+.btn.good{background:var(--navy);border-color:var(--navy);color:var(--navy-ink)}
+.btn.phoney{background:transparent;border-color:var(--coral);color:var(--coral)}
+.btn.phoney:hover{background:color-mix(in srgb,var(--coral) 12%,transparent)}
+.btn small{display:block;font-weight:400;font-size:9px;letter-spacing:.06em;opacity:.65;margin-top:3px;text-transform:none}
+
+/* ---- verdict ---- */
+.verdict{width:100%;max-width:600px;border-top:1px solid var(--line);padding-top:16px;
+  display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center}
+.verdict[hidden]{display:none}
+.badge{font-family:var(--f-mono);font-weight:600;font-size:11px;letter-spacing:.15em;
+  text-transform:uppercase;padding:5px 12px;border-radius:2px}
+.badge.win{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good);
+  border:1px solid color-mix(in srgb,var(--good) 45%,transparent)}
+.badge.lose{background:color-mix(in srgb,var(--coral) 14%,transparent);color:var(--coral);
+  border:1px solid color-mix(in srgb,var(--coral) 45%,transparent)}
+.ruling{font-family:var(--f-body);font-size:17px;max-width:56ch}
+.ruling em{font-style:italic;color:var(--ink-2)}
+.ruling b{font-family:var(--f-display);font-weight:600;font-style:normal}
+.pv{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---- ledger ---- */
+.ledger{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:14px 16px 16px;
+  display:flex;flex-direction:column;gap:10px}
+.panel h2{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-3);margin:0;font-weight:600}
+.streak{display:flex;flex-wrap:wrap;gap:4px}
+.pip{width:14px;height:14px;border-radius:2px;background:var(--sunk);border:1px solid var(--line)}
+.pip.y{background:var(--good);border-color:var(--good)}
+.pip.n{background:var(--coral);border-color:var(--coral)}
+.misslist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;
+  max-height:190px;overflow-y:auto}
+.misslist li{display:flex;gap:9px;align-items:baseline;font-size:14px;line-height:1.35}
+.misslist .w{font-family:var(--f-display);font-weight:600;letter-spacing:.02em;flex:0 0 auto}
+.misslist .t{font-family:var(--f-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  padding:2px 5px;border-radius:2px;flex:0 0 auto}
+.misslist .t.r{color:var(--good);border:1px solid color-mix(in srgb,var(--good) 45%,transparent)}
+.misslist .t.f{color:var(--coral);border:1px solid color-mix(in srgb,var(--coral) 45%,transparent)}
+.misslist .d{color:var(--ink-2);font-size:13px;min-width:0;overflow-wrap:anywhere}
+.empty{color:var(--ink-3);font-size:13.5px;font-style:italic}
+
+.footnote{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between;
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;color:var(--ink-3);
+  border-top:1px solid var(--line);padding-top:12px}
+.footnote button{font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  background:none;border:1px solid var(--line);color:var(--ink-3);padding:5px 10px;border-radius:2px;cursor:pointer}
+.footnote button:hover{color:var(--ink);border-color:var(--ink-3)}
+kbd{font-family:var(--f-mono);font-size:9.5px;background:var(--surface-2);border:1px solid var(--line);
+  border-bottom-width:2px;border-radius:3px;padding:1px 5px}
+
+/* ---- leaderboard ---- */
+.board .head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.seg button{font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  background:transparent;color:var(--ink-2);border:0;padding:6px 11px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--navy);color:var(--navy-ink)}
+.mine{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;color:var(--ink-2)}
+.mine b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.rank{margin:0;padding:0;list-style:none;display:flex;flex-direction:column}
+.rank li{display:grid;grid-template-columns:26px 24px minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:7px 0;border-top:1px solid var(--line)}
+.rank .n{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);text-align:right;font-variant-numeric:tabular-nums}
+.rank img{width:24px;height:24px;border-radius:50%;display:block}
+.rank .who{font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank .who small{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.08em;color:var(--ink-3);margin-left:6px}
+.rank .v{font-family:var(--f-mono);font-weight:600;font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
+.rank .v small{display:block;font-weight:400;font-size:9.5px;color:var(--ink-3);letter-spacing:.04em}
+.rank li.me{background:color-mix(in srgb,var(--navy) 9%,transparent);margin:0 -8px;padding-left:8px;padding-right:8px}
+.note{font-size:13px;color:var(--ink-3);font-style:italic;margin:0}
+.save{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---- two-letter cheat sheet ---- */
+.twos summary{display:flex;align-items:baseline;justify-content:space-between;gap:10px;cursor:pointer;list-style:none}
+.twos summary::-webkit-details-marker{display:none}
+.twos summary h2::before{content:"\25B8\00a0";display:inline-block}
+.twos[open] summary h2::before{content:"\25BE\00a0"}
+.twos .sum{font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;color:var(--ink-3)}
+.twogrid{display:flex;flex-direction:column;gap:3px;margin-top:4px}
+.tr{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:baseline;
+  padding:4px 0;border-top:1px solid var(--line)}
+.tr>b{font-family:var(--f-display);font-weight:700;font-size:15px}
+.tr .ws{display:flex;flex-wrap:wrap;gap:4px 5px}
+.tw{font-family:var(--f-mono);font-weight:600;font-size:12px;letter-spacing:.04em;
+  background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good);
+  border:1px solid color-mix(in srgb,var(--good) 40%,transparent);border-radius:2px;padding:1px 5px;cursor:help}
+.tr .none{font-size:12.5px;color:var(--ink-3);font-style:italic}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:520px){
+  .scores{width:100%;justify-content:space-between}
+  .score{flex:1;min-width:0}
+  .rail{grid-template-columns:repeat(auto-fit,minmax(38px,1fr))}
+}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand">
+      <h1>Phoney Patrol</h1>
+      <p>Challenge drill &middot; NWL2023</p>
+    </div>
+    <div class="scores">
+      <div class="score"><b id="sAcc">&mdash;</b><span>Accuracy</span></div>
+      <div class="score"><b id="sCount">0</b><span>Judged</span></div>
+      <div class="score hot"><b id="sStreak">0</b><span>Streak</span></div>
+    </div>
+  </header>
+
+  <section class="intro">
+    <p class="lead">Scrabble isn&rsquo;t won on the board. It&rsquo;s won on the challenge.</p>
+    <p>Your opponent lays down <span class="word">MUZJIK</span> with a straight face. Real word, or a bluff
+      for thirty free points? In here: <span id="nWords">5,000</span> words &mdash; real entries from the official tournament
+      dictionary mixed with forgeries built to look exactly like they belong, plus every one of the 676
+      possible two-letter plays. Pick a letter, or <b>2s</b> to drill twos only, and start ruling.</p>
+    <p class="punch">Run this for a week and you become the player nobody dares bluff.</p>
+  </section>
+
+  <div class="rail" id="rail" role="tablist" aria-label="Starting letter"></div>
+
+  <main class="stage">
+    <p class="prompt" id="prompt">Your opponent plays this. Do you challenge?</p>
+    <div class="tiles" id="tiles" aria-live="polite"></div>
+    <div class="actions" id="actions">
+      <button class="btn good" id="bGood">Good<small>let it stand</small></button>
+      <button class="btn phoney" id="bPhoney">Phoney<small>challenge it</small></button>
+    </div>
+    <div class="verdict" id="verdict" hidden>
+      <span class="badge" id="badge"></span>
+      <p class="ruling" id="ruling"></p>
+      <p class="pv" id="pv"></p>
+      <button class="btn" id="bNext">Next word &nbsp;&rarr;</button>
+    </div>
+  </main>
+
+  <section class="ledger">
+    <div class="panel">
+      <h2>This session</h2>
+      <div class="streak" id="pips"></div>
+      <p class="empty" id="pipsEmpty">Twenty-five squares. Each one fills as you rule on a word.</p>
+    </div>
+    <div class="panel">
+      <h2>Words that beat you</h2>
+      <ul class="misslist" id="misses"></ul>
+      <p class="empty" id="missEmpty">Nothing yet. Misses collect here with their definitions.</p>
+    </div>
+  </section>
+
+  <section class="panel board" id="board">
+    <div class="head">
+      <h2>Leaderboard</h2>
+      <div class="seg" role="group" aria-label="Rank by">
+        <button id="rkAcc" aria-pressed="true">Accuracy</button>
+        <button id="rkStreak" aria-pressed="false">Best streak</button>
+      </div>
+    </div>
+    <div class="mine" id="mine"></div>
+    <ol class="rank" id="rank"></ol>
+    <p class="note" id="boardNote">Loading the leaderboard&hellip;</p>
+    <span class="save" id="saveState"></span>
+  </section>
+
+  <details class="panel twos" id="twosSheet">
+    <summary><h2>Two-letter cheat sheet</h2><span class="sum" id="twosSum"></span></summary>
+    <div class="twogrid" id="twogrid"></div>
+  </details>
+
+  <footer class="footnote">
+    <span><kbd>G</kbd> good &nbsp; <kbd>P</kbd> phoney &nbsp; <kbd>Enter</kbd> next</span>
+    <button id="bReset" title="Clears this session only. Your all-time stats are kept.">Reset session</button>
+  </footer>
+</div>
+
+<script>
+const RAW = `
+A|ABUZZ~buzzing,AX~to work on with a certain type of cutting…,AJI~a chili pepper,AJIVA~inanimate matter,AZULEJO~a type of ceramic tile,ADZ~to shape wood with a certain a cutting tool,AXE~to ax,AZO~containing nitrogen,AZOTIZE~to treat with nitrogen,AFFIX~to attach,AJAR~partly open,AJEE~agee,ALKOXY~containing a univalent radical composed…,APEX~the highest point,AQUA~water,AZUKI~adzuki,ADZE~to adz,AKVAVIT~aquavit,AQUAVIT~a Scandinavian liquor,AQUIVER~quivering,ASPHYXY~asphyxia,AVOW~to declare openly,AXAL~axial,AXEL~a jump in figure skating,AXIL~the angle between the upper side of a…,AXIS~a straight line about which a body rotates,AXLE~a shaft upon which a wheel revolves,AXON~the central process of a neuron,AZAN~a Muslim call to prayer,ACK~used to express annoyance,ADZUKI~a bean cultivated in Japan; of species…,AFFLUX~a flowing toward a point,AJOWAN~the fruit of an Egyptian plant,AJUGA~a flowering plant,ATAXY~ataxia,AVA~at all,AVE~an expression of greeting or farewell,AVO~a monetary unit of Macao,AW~used to express protest; disgust; or…,AXLIKE~resembling an ax,ABJECT~sunk to a low condition,ADMIX~to mix,AFF~off,AGAZE~gazing,AMAZE~to overwhelm with surprise or wonder,ARK~a large boat,AXIOM~a self-evident truth,AXMAN~one who wields an ax,AZOIC~pertaining to geologic time before the…,AZOTH~mercury|AK,AQ,ACRY,ADVEAL,ARNEXA,ASOLOTL,ARDWORK,AIVEL,AUPO,ADVOSE,ANTUS,ALID,AGEA,ACKROZ,ALPA,AGANIZE,ARAN,AWP,AGAGE,AGEY,ARCHIKE,AHAVE,ALEYE,AURSE,ATIVER,ARED,AVATAL,ANIOM,AWAKH,AVIZE,ANOG,ALCOVEW,ABME,AQUAVIL,ANEL,ALOTA,AULK,AILT,ANNIC,AWILE,AFE,AFIAL,AZU,AHO,AVULBRI,ABBAN,AQUAFAL,ARKYL,AWKED,AZYGOIN
+B|BEZAZZ~pizazz,BAZZ~to throw,BUZZ~to make a vibrating sound,BUZZY~having a vibrating sound,BUZZWIG~a large; thick wig,BANJAX~to damage or ruin,BIZJET~a business jet-plane,BEZIQUE~a card game,BUZZCUT~a very short haircut,BUZZER~a signaling device,BUZZING~a low; continuous; humming noise,BEZZANT~bezant,BIZ~business,BUZZARD~a bird of genus Pernis,BEVVY~an alcoholic drink,BIZE~bise,BLOWZY~blowsy,BOZO~a fellow,BRUX~to grind the teeth,BAWK~an Atlantic seabird,BEVY~a group,BHAJI~a type of Indian fritter,BOMBYX~a silkworm,BOOZY~drunken,BRAXY~a fever of sheep,BANJO~a musical instrument,BEMIX~to mix thoroughly,BIJOU~a jewel,BURQA~burka,BUXOM~healthily plump,BAIZA~a monetary unit of Oman,BAIZE~a green; woolen fabric,BAZAR~bazaar,BECK~to beckon,BOCK~a dark beer,BOW~to bend forward,BUCK~to leap forward and upward suddenly,BA~the eternal soul; in Egyptian mythology,BAFF~to strike under a golf ball,BAKE~to prepare food in an oven,BALK~to stop short and refuse to proceed,BAY~dark reddish-brown,BUZUKI~bouzouki,BO~a pal,BYE~a side issue,BAG~to put into a flexible container,BAH~used to express disgust,BAM~to strike with a dull resounding noise,BAP~a small bun or roll,BEG~to plead|BU,BLACKY,BAET,BAK,BLANTZE,BALET,BRENG,BOE,BRAR,BUNIN,BEEZENT,BAOSH,BAYOFF,BANT,BELEB,BOXFOOD,BIPASK,BOMID,BITH,BIPY,BURBY,BEZARRE,BRYOFF,BLOTE,BURWA,BACAZIL,BIRC,BYNAY,BRICETA,BAROR,BARMOTT,BURUM,BOOLA,BADU,BEMY,BUSQUE,BUTA,BIKO,BARY,BOLK,BEH,BELA,BUF,BEI,BLUN,BOOCER,BADIZEN,BALY,BEJASAS,BURWE
+C|CAZIQUE~cacique,CHAZZAN~chazan,CHAZZEN~chazan,COX~to coxswain,COZ~a cousin,COZY~snug and comfortable,CUZ~a cousin,CAZH~casual,CHEZ~at the home of,CINQ~cinque,CIVVY~a civilian,CALX~a mineral residue,CARJACK~to steal a vehicle from its driver by force,CERVIX~the neck,CHIVVY~to chevy,COAX~to cajole,CONVEX~a surface or body that is curving outward,COXA~the hip or hip joint,CROJIK~a triangular sail,CRUX~a basic or decisive point,CZAR~an emperor or king,CAKEBOX~a container for a cake,CALYX~the outer protective covering of a flower,CAVY~a short-tailed rodent,CERVEZA~beer,COCCYX~a bone of the spine,COWPOX~a cattle disease,COZEY~a cover for a teapot,CRAZY~insane,CYLIX~kylix,CAJON~a steep-sided canyon,CAKY~cakey,CAPIZ~a bivalve mollusk,CIMEX~a bedbug,COKY~cokelike,COMIX~comic books or strips,COQUI~a small arboreal frog,CWM~a cirque,CALIX~a cup,CAREX~a marsh plant,CAVA~a sparkling Spanish wine,CAW~to utter the sound of a crow,CHEVY~to chase about,COW~to intimidate,CAF~a cafeteria or cafe,CAY~a small low island,COY~shy,CAB~to take or drive a taxicab,CAM~a rotating or sliding piece of machinery,CAP~to provide with a type of head covering|CISE,CAPSUZE,COHINK,CODION,CLYAN,CRAL,CHECKY,CHAZH,CLUD,CRARK,CUER,COSALO,CRECK,CIP,CYEN,CHUP,CLAVO,COAF,COHUG,CANVO,CLAPUT,CHOLIX,CYARISM,COAP,CACAP,CES,CHAF,COIA,CZARANA,CUBB,CLIQUET,CRIZ,CHIVING,CRAKA,CHAN,COMOVID,CHASH,CROLT,CRURY,CADIX,CID,CAZ,CEB,CER,CAVIRY,CUROZO,CLIAK,COVEZA,CRAC,CHEEW
+D|DOXX~to dox,DIZZY~having a sensation of whirling,DIZZILY~in a dizzy manner,DRIZZLY~characterized by light rain,DAZZLE~to blind by bright light,DOXXING~the act of doxxing,DAZZLER~one that dazzles,DEX~a sulfate used as a central nervous…,DEXY~dexie,DOX~to attack by publishing private information,DOXY~a doctrine,DOZY~drowsy,DRIZZLE~to rain lightly,DIVVY~to divide,DJIN~jinni,DOJO~a school that teaches judo or karate,DAZE~to stun,DEWAX~to remove wax from,DITZ~a ditsy person,DOUX~very sweet,DOZE~to sleep lightly,DAVY~a safety lamp,DAWK~dak,DEOXY~having less oxygen than the compound from…,DEV~deva,DITZY~ditsy,DOOZY~an extraordinary one of its kind,DAK~transportation by relays of men and horses,DEEJAY~to work as a disc jockey,DJEMBE~a type of African hand drum,DJIBBA~jibba,DJIBBAH~jibba,DJINNY~jinni,DECK~to adorn,DAW~to dawn,DEFUZE~to defuse,DEKKO~a look,DESEX~to castrate or spay,DETOX~to detoxify,DEW~to wet with condensed moisture,DEXIE~a tablet of dex,DIAZO~a type of coloring or copying process,DIXIT~a statement,DIZEN~to dress in fine clothes,DOW~to prosper,DA~dad,DE~of,DEF~excellent,DEY~a former North African ruler,DIF~diff|DI,DUVEET,DIEF,DUAY,DULCKER,DEBAVIT,DETIEY,DATWEL,DARAT,DIELE,DUCHI,DASA,DINKLI,DASIDE,DRUT,DEAME,DICOXIN,DEIS,DOROXID,DUFI,DENASH,DEIOXID,DOEL,DEBER,DOCKEER,DOKA,DEFAG,DERU,DUIB,DEAK,DIZER,DIAD,DOODA,DILOP,DHEN,DEBUN,DIV,DOCKY,DEDEX,DOOMA,DET,DEK,DEM,DAF,DIEBER,DAMON,DAURA,DINGA,DEAUB,DRECLY
+E|EXEQUY~a funeral procession,EX~to cross out,EQUINOX~a point on the celestial sphere,EXAM~an examination,EXEC~an executive officer,EXPO~a public exhibition,EKKA~a one-horse vehicle of India,ENZYM~enzyme,EPOXY~to glue with a certain type of resin,EVZONE~a Greek soldier,EXCLAVE~a portion of a country which is isolated…,EXIT~to go out,EXON~a sequence in the genetic code,EXUVIUM~the molted covering of an animal,EFFLUX~an outflow,EJECT~to throw out forcibly,EMOJI~a modern digital ideogram,ENVY~to be envious of,EQUIP~to provide with whatever is needed,EVE~evening,EW~expressing disgust,EARWAX~cerumen,EEJIT~an idiot,EEK~used to express sudden fright,EF~the letter F,EFF~ef,EJIDO~a piece of land farmed communally in Mexico,EKE~to supplement with great effort,ELK~a large deer,ENJAMB~to continue a sentence from one line of a…,ENZYME~a complex protein,ENZYMIC~pertaining to enzymes,EQUABLY~in an equable manner,EQUES~a member of a privileged military class…,EQUID~an ungulate of family Equidae,EQUITY~fairness or impartiality,EVOKE~to call forth,EXACT~precise,EXCEL~to surpass others,EXOME~the exons in a genome,EAVE~the lower projecting edge of a roof,EEW~eeew,EH~used to express doubt or surprise,EM~a typographic unit,ERUV~a halakhic enclosure of mechitzot making…,EVER~at all times,EVIL~morally bad,EWE~a female sheep,EGGY~tasting or smelling of egg,EMMY~a trademark|EQ,EC,EZ,EV,ELMBANK,ENFIN,EMOWEL,ERUGA,EIGHOIC,EADLE,ENOV,EXSIT,EMBRYU,EVITCH,EXPIR,EXPAZ,ELENGO,ELLAVE,EMPTIPY,EEJIG,EPIER,ENQUY,EVOLUBE,ECOZOCT,EXPORG,ELENON,EASIL,EDHE,EEJIB,ENRE,EEEL,ERI,EPHAD,EVNA,ENTRU,ECCH,EELE,EDOL,ENOZ,EPEA,EVA,ETON,ENIC,EASA,EYESEAR,ERUERRY,ESCOF,ENTE,ELUDO,EYECUB
+F|FIZZ~to make a hissing or sputtering sound,FUZZ~to become fuzzy,FIZZY~fizzing,FUZZY~blurry,FRIZZ~to form into small; tight curls,FRIZZY~tightly curled,FIZZILY~in a fizzy manner,FRIZZLY~frizzy,FUZZILY~in a fuzzy manner,FEZZED~wearing a fez,FIZZER~one that fizzes,FIZZLE~to fizz,FAX~to transmit and reproduce by electronic…,FEZ~a brimless cap worn by men in the Near East,FIZ~a hissing or sputtering sound,FOX~to outwit,FOXY~crafty,FOZY~too ripe,FRAZZLE~to fray,FRIZZER~one that frizzes,FRIZZLE~to frizz,FUJI~a silk fabric,FALX~a sickle-shaped structure,FAUX~fake,FAZE~to disturb the composure of,FLAX~an annual herb,FLEX~to bend,FLUX~to melt,FRIZ~to frizz,FROWZY~unkempt,FUTZ~to spend time aimlessly,FAV~a favorite,FLAXY~flaxen,FURZY~abounding in furze,FAQIR~fakir,FIQUE~a tropical plant,FJELD~a high; barren plateau,FJORD~a narrow inlet of the sea between steep…,FOWLPOX~a virus disease of poultry,FEAZE~to faze,FEDEX~to send by Federal Express,FEEZE~to faze,FIXIT~a person known for fixing things,FA~the fourth tone of the diatonic musical…,FAY~to join closely,FE~a Hebrew letter,FEY~crazy,FOY~a farewell feast or gift,FRY~to cook over direct heat in hot fat or oil,FAB~fabulous|FI,FRIRE,FEISM,FOER,FONTE,FAETA,FRAVELA,FUTOB,FOGAM,FLOPPA,FLEI,FATAH,FLOPLY,FAKEMI,FROADE,FOLT,FENPLEX,FORO,FREC,FAWABLE,FULBOUS,FIDEX,FICUBAR,FEREMD,FALO,FUBHARK,FARIZ,FLOXILE,FEER,FERCE,FOSSY,FAUNG,FUNT,FEAD,FARN,FITIL,FAND,FORC,FOAT,FAE,FUZ,FLI,FIP,FOZ,FOWAY,FATY,FUCAL,FEYRE,FLOAL,FERO
+G|GRIZZLY~grayish,GUZZLE~to drink rapidly,GIZZARD~a digestive organ,GOX~gaseous oxygen,GRIZZLE~to complain,GUZZLER~one that guzzles,GOJI~the red berry of an Asian shrub,GAZE~to look intently,GEEZ~jeez,GRIZ~a grizzly,GAUZY~resembling gauze,GAWK~to stare stupidly,GLAZY~covered with a smooth; glossy coating,GOWK~a fool,GRAVLAX~cured salmon,GUV~a governor,GYOZA~a stuffed and fried pocket of dough,GYVE~to shackle,GANJA~cannabis used for smoking,GAWKY~awkward,GHAZI~a Muslim war hero,GIZMO~gismo,GYTTJA~an organically rich mud,GALAX~an evergreen herb,GALAXY~a large system of celestial bodies,GANJAH~ganja,GAUZE~a transparent fabric,GAZAR~silky sheer fabric,GAZER~one that gazes,GLITZ~to make flashy in appearance,GAZUMP~to cheat by raising the price originally…,GECK~to mock,GLAZE~to fit windows with glass panes,GLITZY~showy,GRAWLIX~euphemistic symbolic typography,GUCK~a messy substance,GYM~a room for athletic activities,GHI~ghee,GAFF~to catch a fish with a sharp hook,GANK~to steal,GAWP~to stare stupidly,GAY~merry,GEEK~to discuss a highly technical subject,GEY~very,GI~a white garment worn in martial arts,GIF~a computer file in a format for images,GAB~to chatter,GAG~to stop up the mouth,GAM~to visit socially,GEM~to adorn with gems|GU,GENEVEN,GADY,GAITE,GRUX,GNAS,GAIG,GRIFFO,GADER,GNIN,GLITY,GOLYAC,GEOVE,GAZAIN,GHOZE,GUCU,GROXEL,GIAST,GROORO,GREEMMA,GROITZY,GROB,GEALA,GUPE,GINGAVA,GULY,GETUL,GAYVE,GNATH,GNAY,GOUZY,GABAT,GYRAB,GEOMER,GOMA,GON,GHEM,GAWPEAN,GEEMISH,GARD,GYT,GAU,GOE,GEA,GROX,GULABY,GOGI,GIZEL,GARPIKU,GAMIKE
+H|HAJJ~hadj,HAJJI~hadji,HUZZA~to cheer,HUZZAH~to huzza,HAJ~hadj,HAZZAN~hazan,HAZY~unclear,HEX~to cast an evil spell upon,HADJ~a pilgrimage to Mecca,HAJI~hadji,HIJACK~to seize a vehicle while in transit,HAZE~to subject to a humiliating initiation,HOAX~to deceive,HAFIZ~a Muslim who knows the Koran by heart,HAWK~to peddle,HEXYL~a hydrocarbon radical,HIJAB~a head covering worn by Muslim women,HIJINKS~mischievous fun,HOWK~to dig,HYRAX~a small; harelike mammal,HADJI~one who has made a hadj,HAMZA~an Arabic diacritical mark,HAPAX~a word that occurs only once,HIJRA~hegira,HYDROXY~containing hydroxyl,HYPOXIC~pertaining to hypoxia,HACK~to cut or chop roughly,HAMZAH~hamza,HAW~to turn left,HAZAN~a cantor,HAZEL~a shrub,HAZER~one that hazes,HAZILY~in a hazy manner,HECK~hell,HEW~to cut with an ax,HEXYLIC~pertaining to hexyls,HICK~characteristic of rural people,HIJRAH~hegira,HIVE~to cause to enter a bee's nest,HM~hmm,HOCK~to pawn,HYP~hypochondria,HYPOXIA~a deficiency of oxygen in body tissue,HA~a sound of surprise,HADJEE~hadji,HAY~to dry cut grass for fodder,HI~used as a greeting,HMM~used to express thoughtful consideration,HAG~to hack,HOY~a heavy barge or scow|HY,HU,HIB,HAPY,HOWGON,HICKOO,HARBY,HOSIE,HANKEWE,HUMACK,HERUMOR,HOVEFER,HORVE,HEDE,HIACKEE,HENKEY,HOPEPPY,HELPY,HENO,HOLIX,HENLA,HIER,HEKU,HUANT,HUSSI,HONDAX,HOETH,HETIX,HOMM,HORL,HEAFEN,HEOSEY,HENDE,HOA,HERR,HACEL,HALC,HIPA,HOUTZ,HOSO,HAGH,HONI,HUA,HAR,HANSY,HIPNIC,HYANGRY,HOVILY,HIKILY,HUFAM
+I|IZZARD~the letter Z,IBEX~a wild goat,IVY~a climbing vine,ILEX~a holly,INKJET~a printer that spurts ink to form letters,IXIA~a flowering plant,IZAR~an outer garment worn by Muslim women,ICK~something sticky or disgusting,ICKY~repulsive,IMMIX~to mix in,INFIX~to implant,IXNAY~to put an end to,IFF~if and only if,IFFY~full of uncertainty,ILK~a class or kind,INBOX~a window in which electronic mail is…,INK~to mark with a fluid used for writing,INKY~resembling ink,IRK~to annoy or weary,ICEBOX~a cabinet for cooling food,ICY~covered with ice,INFLUX~a flowing in,INJECT~to force a fluid into,INQUIRY~a question,ISOZYME~a type of enzyme,IXORA~a flowering plant,IXTLE~istle,IZARD~a goatlike antelope,ICH~a disease of certain fishes,ID~a part of the psyche,IGG~to ignore,IKAT~a fabric of tie-dyed yarns,IKON~icon,ILKA~each,IMBLAZE~to emblaze,IMMY~a type of playing marble,IMP~to graft feathers onto a bird's wing,INDOXYL~a chemical compound,INJERA~a type of Ethiopian bread,INJURE~to do or cause injury to,INVOKE~to appeal to for aid,IVORY~resembling an elephant tusk in color,INBY~inward,ISM~a distinctive theory or doctrine,IWIS~certainly,ICKER~a head of grain,INVAR~an iron-nickel alloy,IVIED~covered in ivy,INKER~one that inks,INKLE~a tape used for trimming|IM,INTWO,IKAGISM,IDYSLIC,INOTA,INKLERT,INKNURN,IMPERK,INBONG,ILENE,IMBEDY,INEST,ISCITE,INDOGN,ITIM,ICEMAD,INFETE,IMPEFY,IRSE,INAY,INGE,INKA,INIT,IKATY,IROKE,IRADO,INON,ISISH,INLE,ISOPT,ISIN,INRIS,INORT,INOPT,ISK,IMONY,ICA,IDER,ITOL,IPTI,IDAL,IOG,IMPAEL,ISTHOD,INCIZER,IMPLIX,ILSE,ISOGAMB,ISSID,ILIOCY
+J|JAZZ~to enliven,JERK~to move with a sharp; sudden motion,JAZZY~lively,JAZZBO~a devotee of jazz,JAZZILY~in a jazzy manner,JACUZZI~a trademark,JAZZER~one that jazzes,JAZZMAN~a type of musician,JUJU~an object regarded as having magical power,JEEZ~used as a mild oath,JINX~to bring bad luck to,JIVY~jivey,JUKEBOX~a coin-operated phonograph,JOKY~jokey,JACK~to raise with a type of lever,JAVA~coffee,JAW~to jabber,JEEZE~jeez,JEEZLY~used as an intensifier,JIMJAMS~violent delirium,JIVE~deceitful,JOCK~an athletic supporter,JOJOBA~a small tree,JOW~to toll,JUJUBE~a fruit-flavored candy,JACKY~a sailor,JAKE~all right,JAUK~to dawdle,JAY~a bird of genus Platylophus,JEEZELY~jeezly,JEJUNE~childish,JIVEY~jazzy; lively,JO~a sweetheart,JOCKY~resembling an athlete,JOY~to rejoice,JAB~to poke sharply,JAG~to cut unevenly,JAM~to force together tightly,JANKY~junky,JERKY~characterized by jerking movements,JIB~to refuse to proceed further,JIFFY~a short time,JIG~to bob,JOG~to run at a slow; steady pace,JUG~to put into a large; deep container with…,JUNKY~worthless,JOCKO~a monkey,JOWLY~having prominent jowls,JUVIE~a juvenile delinquent,JAGGY~jagged|JU,JEEREED,JAWLED,JOWIG,JEALAUS,JASSIED,JAVO,JAMLIVE,JAREED,JAGAL,JUSS,JUNIN,JOANED,JEEHAD,JACOON,JITOWAR,JULE,JOMBLER,JUGGUL,JENY,JOU,JUNEY,JIRKY,JORD,JAGY,JUCK,JEFUL,JOESS,JELY,JOEL,JEEFE,JEBIE,JUNU,JOISK,JOGLE,JAGON,JAWL,JAPAW,JIST,JURD,JOO,JEB,JES,JAC,JUGNEE,JELLER,JUBBLER,JARFIN,JEESE,JUXILEE
+K|KEX~a dry; hollow stalk,KOJI~a fungus used to start fermentation,KICKBOX~to box in a style that allows kicking,KUVASZ~a large dog having a white coat,KAKIVAK~a fish spear used by the Inuits,KOLKHOZ~a collective farm in Russia,KOLKOZ~kolkhoz,KOPJE~a small hill,KYLIX~a drinking vessel,KANJI~a system of Japanese writing,KWANZA~a monetary unit of Angola,KYAK~a kayak,KANZU~a long white garment worn in Africa,KAVA~a tropical shrub,KAZOO~a toy musical instrument,KECK~to retch,KILLJOY~one who spoils the fun of others,KIVA~an underground ceremonial chamber,KLUTZ~a clumsy person,KLUTZY~clumsy,KUDZU~an Asian vine,KVAS~kvass,KA~the spiritual self of a human being in…,KAF~kaph,KAJEPUT~cajuput,KAKA~a bird of genus Nestor,KAKI~a Japanese tree,KAMEEZ~a long tunic worn by some people of India,KAMOTIQ~komatik,KAY~the letter K,KEEK~to peep,KEF~hemp smoked to produce euphoria,KHAZEN~hazzan,KI~qi,KIF~kef,KINK~to form a tight curl or bend in,KIRK~a church,KLIK~klick,KONK~to conk,KYACK~a packsack,KYE~a private Korean-American banking club,KAB~an ancient Hebrew unit of measure,KAYAK~to travel in an Inuit canoe,KEG~to store in a small barrel,KEP~to catch,KHI~chi,KINKY~tightly curled,KOOKY~eccentric,KAMIK~a type of boot,KAPOK~a mass of silky fibers|KO,KARMUC,KOCS,KOLKHEE,KIPARA,KOCKUP,KEBBONK,KLOAD,KAO,KIDIF,KOIN,KITBAT,KNOSH,KAOLAN,KENCO,KATANO,KARTA,KIONA,KOONY,KUMBAIA,KHAVA,KEYWOLD,KAIT,KIAS,KEPO,KAWA,KAN,KAYE,KEBBE,KITZ,KURI,KILYLIN,KIBBUZZ,KABOR,KOHA,KEVAL,KOLMA,KLOW,KOLEP,KENA,KOF,KNEG,KIB,KER,KIRAMIC,KLAKA,KOUSSA,KABBEH,KOPECAP,KETCAH
+L|LOCKJAW~a form of tetanus,LAX~not strict or stringent,LAZY~disinclined toward work or exertion,LEX~law,LOX~to supply with liquid oxygen,LUX~a unit of illumination,LYNX~a short-tailed wildcat,LUVVY~lovey,LAZE~to pass time lazily,LOCKBOX~a box that locks,LUTZ~a jump in figure skating,LUXE~deluxe,LAV~a lavatory,LAXLY~in a lax manner,LEV~a monetary unit of Bulgaria,LEVY~to impose or collect by legal authority,LEWK~an individual; distinctive; fashion style,LIQUEFY~to make or become liquid,LIQUIFY~to liquefy,LUV~to love,LACQUEY~to lackey,LAKY~of the color of blood,LEK~a monetary unit of Albania,LOGJAM~to cause to become tangled in a mass,LAKH~the sum of one hundred thousand,LARYNX~an organ of the respiratory tract,LATEX~a milky liquid of certain plants,LAVA~molten rock that issues from a volcano,LAVE~to wash,LAXITY~the state of being lax,LAZAR~a beggar afflicted with a loathsome disease,LAZILY~in a lazy manner,LAZYISH~somewhat lazy,LEVO~turning toward the left,LEXIS~the vocabulary of a language; a group; or…,LICK~to pass the tongue over the surface of,LUMMOX~a clumsy person,LUREX~a trademark,LUVVIE~lovey,LA~the sixth tone of the diatonic musical scale,LEAVY~leafy,LEY~lea,LI~a Chinese unit of distance,LO~used to attract attention or to express…,LANKY~ungracefully tall and thin,LARKY~playful,LEAKY~tending to leak,LAEVO~levo,LARVA~the immature form of various insects and…,LAVER~a vessel used for ancient Hebrew…|LY,LU,LOGGACY,LOGUSTY,LOURA,LAGGO,LINIPIN,LAPOGON,LEERE,LITFISK,LOWFUL,LAHI,LAHSIS,LAILY,LEAENER,LEUM,LUATEX,LOGER,LAWMAT,LOEDE,LECEE,LANIZE,LOME,LAUN,LEGI,LAIMY,LUDGY,LUDER,LYSHEE,LACH,LOOH,LUKE,LUEST,LOAP,LAZ,LAURE,LIEK,LODDY,LEAC,LIRN,LIVY,LAK,LUS,LOV,LAPLIKE,LARYART,LIQUIFA,LYIE,LICUM,LOVERY
+M|MUZJIK~muzhik,MUZZY~confused,MEZZO~a female voice of a full; deep quality,MIZZLY~characterized by a fine rain,MUZZILY~in a muzzy manner,MAXIXE~a Brazilian dance,MEZQUIT~mesquite,MEZUZA~mezuzah,MEZUZAH~a Judaic scroll,MIZZEN~a type of sail,MIZZLE~to rain in fine droplets,MUZZLE~to put a covering over the mouth of to…,MAX~to reach the upper limit,MAZY~full of confusing turns and passages,MAZZARD~a wild cherry,MUEZZIN~a Muslim crier who calls the faithful to…,MUJIK~muzhik,MUX~to transmit several messages…,MOJO~a magic charm,MPOX~monkeypox,MUZAK~recorded background music,MAXI~a long skirt or coat,MAZE~to bewilder,MEZE~a Greek or Middle Eastern appetizer,MINX~a pert girl,MOXA~a Chinese plant,MOZO~a manual laborer,MAUZY~foggy; misty,MAQUI~maquis,MAXIM~a brief statement of a general truth or…,MIKVA~mikvah,MIXUP~a state of confusion,MACK~mac,MAIZE~an American cereal grass,MATZA~matzo,MATZO~an unleavened bread,MAW~to mow,MAZER~a large drinking bowl,MEW~to confine,MM~used to express assent or satisfaction,MOCK~to ridicule,MOW~to cut down standing herbage,MUCK~to fertilize with manure,MYC~a gene that transforms a normal cell into…,MA~mother,MAKI~sushi rolled in nori,MAY~to be permitted to,MI~the third tone of the diatonic musical scale,MMM~mm,MO~a moment|MICY,MAUSS,MOWL,MUEINY,MIJA,MEDACK,MOTAVIC,MAGAGE,MIKVAX,MINARD,MONSY,MOCKY,MACKING,MABLEY,METLY,MAGY,MUSOT,MAJO,MAME,MASO,MAYWEID,MUTY,MURPHO,MAZUZAH,MAAM,MIPLY,MISI,MOUL,MILAR,MOLTY,MOISY,MORC,MEPS,MOZLE,MITTIZA,MIP,MIMIZ,MIARG,MAUSH,MOU,MAL,MEC,MOE,MUE,MEANA,MEOL,MUMLUK,MORL,MOOH,MYRIZEN
+N|NOZZLE~a projecting spout,NUZZLE~to push with the nose,NIX~a water sprite,NIXY~an undeliverable piece of mail,NUZZLER~one that nuzzles,NAVVY~a manual laborer,NAZI~a type of fascist,NAV~navigation,NAVY~a nation's warships,NAZIFY~to cause to be like a nazi,NIQAB~a veil worn by some Muslim women,NDUJA~a Calabrian spicy pork sausage,NINJA~a feudal Japanese warrior,NIZAM~a former sovereign of India,NUDZH~to noodge,NAVE~the main part of a church,NAW~no,NERTZ~nerts,NEVE~a granular snow,NEXUS~a connection or link,NICK~to make a shallow cut in,NIQAAB~niqab,NIXIE~a female water sprite,NOCK~to notch a bow or arrow,NONJURY~a case not involving a jury,NOVA~a type of star,NUTJOB~a crazy person,NA~no,NAFF~lacking taste or style,NARK~to spy or inform,NAY~a negative vote,NE~born with the name of,NERVY~impudent,NEUK~nook,NEWB~a newbie,NIFF~to stink,NU~a Greek letter,NAB~to capture or arrest,NAG~to find fault incessantly,NAH~no,NAKFA~a monetary unit of Eritrea,NAP~to sleep briefly,NARKY~irritable,NARTHEX~a vestibule in a church,NEB~the beak of a bird,NIFFY~stinky,NONTAX~a tax of little consequence,NETIZEN~a frequent user of the Internet,NONZERO~having a value other than zero,NOXIOUS~harmful to health|NI,NULLITU,NALY,NORADA,NUMETAG,NAGWAME,NOBY,NIPH,NIAET,NOPICE,NIPPLEM,NONENT,NONIK,NAYSAE,NOTAFLY,NUMAN,NADDY,NORDUC,NAUTBAR,NONRON,NID,NOMEP,NOTY,NAESS,NUDDY,NEN,NIFY,NIEM,NEPE,NIVAB,NEOSE,NILED,NIETA,NEKA,NIFTI,NUKAH,NEM,NILA,NERL,NURN,NADO,NITY,NAS,NAT,NUTTU,NEMATED,NAIVELU,NIZ,NISO,NACHE
+O|OX~a clumsy person,OXY~containing oxygen,OUTJINX~to surpass in jinxing,ONYX~a variety of quartz,OOZY~containing or resembling soft mud or slime,ORYX~an African antelope,OVERJOY~to fill with great joy,OXAZINE~a chemical compound,OXAZOLE~a liquid chemical compound,OXIDIZE~to combine with oxygen,OXO~containing oxygen,OYEZ~a cry used to introduce the opening of a…,OZONIZE~to convert into ozone,OXBOW~a U-shaped piece of wood in an ox yoke,OXIC~denoting a process in which oxygen in…,OXIM~oxime,OK~okay,OOZE~to flow or leak out slowly,ORZO~rice-shaped pasta,OUZO~a Greek liqueur,OVERMIX~to mix too much,OXER~a fence for keeping in cattle,OXID~oxide,OBJET~an article of artistic value,OVERLAX~too lax,OVERTAX~to tax too heavily,OW~used to express sudden pain,OXEYE~a flowering plant,OXLIKE~resembling an ox,OAK~a hardwood tree or shrub,OAKY~tasting of oak sap,OBLOQUY~abusive language,OBSEQUY~a funeral rite,OFF~to go away,OIK~a very rude or stupid person,OKA~a Turkish unit of weight,OKE~oka,OVUM~the female reproductive cell of animals,OXIME~a chemical compound,OXLIP~a flowering plant,OY~used to express dismay or pain,OH~to exclaim in surprise; pain; or desire,OUZEL~a bird of species Turdus torquatus,OXIDE~a binary compound of oxygen with another…,OXTER~the armpit,OZONE~a form of oxygen,OVARY~a female reproductive gland,OGIVE~a pointed arch,OAKUM~loosely twisted hemp fiber,OCKER~a boorish person|OZ,OJ,OT,OC,OPSTOMY,OATAR,OREAH,ORPHIRM,OUILWAY,OCTEL,OFFLAND,OGREP,OFFAR,OVEMALL,ODERAWE,OVERADA,ORLONG,OUTKIVE,OATEY,OFFSIDU,OCTABIT,OLEUT,OXIMI,OCCULDS,OUAT,OLLOP,OUING,OLKE,OON,OUSAY,OBEAC,OBIL,OLKED,OULL,OTRA,OWSI,OPPE,ORME,OZEN,OLAT,ORAX,OBOT,OYST,OBT,OXTESE,OWLISS,OVON,OSSITAR,OSTMIX,OVERER
+P|PIZZAZZ~verve; energy; liveliness,PZAZZ~pizazz,PIZAZZY~having pizazz,PAZAZZ~pizazz,PIZAZZ~the quality of being exciting or attractive,PIZZAZ~pizazz,PAXWAX~the nuchal ligament of a quadruped,PHIZZ~phiz,PIZZA~an Italian open pie,PYX~a container in which the eucharistic…,PIAZZA~a public square in an Italian town,PUZZLER~something that puzzles,PUZZLE~to cause uncertainty and indecision in,PACKWAX~paxwax,PALAZZO~an impressive building,PAX~a ceremonial embrace given to signify…,PIX~pyx,PIXY~a playfully mischievous fairy or elf,POX~to infect with a disease marked by skin…,POXY~afflicted with a pox,PREZZIE~a gift,PHIZ~a face or facial expression,PUJA~a Hindu prayer ritual,PLEX~a multiplex,PREX~prexy,PREZ~a president,PUTZ~to waste time,PREXY~a president,PROXY~a person authorized to act for another,PUJAH~puja,PYREX~a trademark,PYXIE~an evergreen shrub,PYXIS~a pyxidium,PAK~pack,PAWKY~sly,PHLOX~a flowering plant,PIQUE~to arouse anger or resentment in,POKY~slow,POOJA~puja,PAVE~to cover with material that forms a firm;…,PAW~to strike or scrape with a beating motion,PECK~to strike with the beak or something pointed,PACZKI~a round doughnut with a filling,PEW~a bench in church,POCK~to mark with pocks,POW~an explosive sound,PWN~to dominate,PA~a father,PAY~to give money or something of value in…,PE~a Hebrew letter|PY,PU,PUPAR,PRANZU,PAMP,PAUS,PILA,PLALI,PONESKY,PROPLOY,PODWAY,POMY,PLEE,PLUCERC,PRER,POIRN,PILT,PHEOND,PEOPSY,PURO,PIRO,POLYAN,POTH,PELOTZ,PAVON,PENEX,POLETUI,PREHA,PAEMIX,PATEG,PORAVID,PERVE,PUED,PLOKA,PADGY,POHY,PAANK,PONEY,PIPI,PASKY,PLI,PIM,POK,PAE,PROLAXE,PULECH,PUNATY,PLASE,PALEB,PUNLEY
+Q|QAJAQ~kayak,QUIZZER~one that quizzes,QUIZ~to test the knowledge of by asking questions,QUEAZY~queasy,QI~the vital force that in Chinese thought…,QULLIQ~kudlik,QUAKY~tending to quake,QUARTZ~a mineral,QUEZAL~quetzal,QUOKKA~a short-tailed wallaby,QAPIK~a gopik,QAT~kat,QOPH~koph,QUA~in the capacity of,QUACK~to utter the characteristic cry of a duck,QUACKY~resembling the cry of a duck,QUAY~a wharf,QUETZAL~a bird of genus Euptilotis,QUEY~a young cow,QUINZIE~quinzhee,QUIXOTE~a quixotic person,QUAFF~to drink deeply,QUAG~a quagmire,QUAKE~to shake or vibrate,QUARK~a hypothetical atomic particle,QUAVERY~quivery,QUIFF~a lock of hair at the front of the head,QUIP~to make witty remarks,QUIRK~to twist,QUIRKY~peculiar,QADI~cadi,QAID~caid,QUAD~to space out by means of quadrats,QUAI~quay,QUID~a portion of something to be chewed,QUIN~a quintuplet,QUOD~a prison,QUERY~to question,QIBLA~kiblah,QUALM~a feeling of doubt or misgiving,QUASH~to suppress completely,QUIVERY~marked by quivering,QAWWALI~a style of Muslim music,QIVIUT~the wool of a musk ox,QUAKILY~in a quaky manner,QUAVER~to quiver,QUIVER~to shake with a slight but rapid motion,QWERTY~a standard keyboard,QAMUTIK~komatik,QUAGGY~marshy|QE,QUILIFY,QUEGGA,QUORATU,QUATAN,QUOTJA,QUIPPI,QUARTEN,QUOHOLL,QUIFAR,QABABAH,QUAVOR,QUASSIE,QUAKILO,QUEURSH,QUICKUE,QUEA,QUINLY,QUISH,QUANCE,QUIG,QUINAR,QUIAT,QUAT,QUIRTE,QAILT,QUONSY,QUAKEM,QUAFE,QUOIK,QULE,QUABE,QURUM,QUANE,QULY,QUOR,QUEIN,QUAGE,QUAID,QUATU,QULL,QUIC,QUARY,QUAR,QADO,QUANTAM,QUIRU,QUICKAN,QUILA,QUASINT
+R|RAZZ~to deride,RAJ~sovereignty,RAZZIA~a hostile raid by Moors,RAZZLE~a flamboyant colorful display,ROZZER~a policeman,RAX~to stretch out,REX~a king,REZ~an area of land set aside for Native…,RAJA~rajah,RAZE~to tear down or demolish,REWAX~to wax again,RITZ~pretentious display,ROUX~a mixture of butter and flour,RAJAH~a king or prince in India,REFIX~to fix again,REJIG~to rejigger,REV~to increase the speed of,RITZY~elegant,REAFFIX~to affix again,REMEX~a flight feather of a bird's wing,REMIX~to mix again,RIOJA~a dry red Spanish wine,ROQUE~a form of croquet,RYKE~to reach,RACK~to place in a type of framework,RADIX~the root of a plant,RAMJET~a type of engine,RAVE~to speak irrationally or incoherently,RAZEE~to make lower by removing the upper deck;…,RAZER~one that razes,RAZOR~to shave or cut with a sharp-edged…,RECK~to be concerned about,REENJOY~to enjoy again,REFLEX~to bend back,REFLUX~to cause to flow back,REVIVE~to bring back to life or consciousness,RICK~to pile hay in stacks,RIVE~to tear apart,ROMAJI~a system of transliterating Japanese into…,RUCK~to wrinkle or crease,RUKH~a roc,RACQUET~a lightweight implement used in various…,RAY~to emit rays,RE~the second tone of the diatonic musical…,REBOZO~a long scarf,REF~to referee,RIF~to dismiss from employment,RYA~a Scandinavian handwoven rug,RYE~a cereal grass,RYU~a school of Japanese martial arts|RA,REFF,RIZ,RANKASH,ROTUNTY,RATA,RAGY,RUDDOOK,REPAE,ROOBY,REENE,REVINE,RUXINE,RAUB,REBIVE,REFLOS,RAELLY,ROVINT,REBBY,RIET,RAREFA,RUAIL,REID,REGOM,REWABY,RUITE,REDDA,RABE,RALIC,RIEDER,RECLY,REAK,RAKEW,ROTU,REEAP,RETOT,RUP,RAV,RONG,RESO,RAUT,RYCH,REY,ROP,ROECK,ROCEB,RELE,REVOT,REPEAVE,REERO
+S|SCHIZZY~schizy,SKIVE~to pare,SCUZZY~dirty or shabby,SKYJACK~to hijack an airplane,SLOJD~sloyd,SNAZZY~very stylish,SWIZZLE~to drink excessively,SCHNOZZ~schnoz,SOVKHOZ~a state-owned farm in the former Soviet…,SIZZLE~to burn or fry with a hissing sound,SKIVVY~to work as a female servant,SQUAWK~to utter a loud; harsh cry,SQUEEZE~to press hard upon,SUQ~souk,SAX~a saxophone,SIZY~viscid,SIZZLER~a very hot day,SAVVY~shrewd,SOJA~the soybean,SOJU~a Korean vodka distilled from rice or…,SKEP~a beehive,SEXT~to send an explicit text message,SEV~an Indian food of deep-fried strands of…,SHOJI~a paper screen used as a partition or…,SHOJO~manga intended primarily for girls,SIXTY~ten more than fifty,SKEW~to turn aside,SOYUZ~a manned spacecraft of the former Soviet…,SQUAB~a young pigeon,SQUEG~to oscillate in an irregular manner,SQUIB~to lampoon,SAJOU~a capuchin,SHIV~to stab with an improvised knife,SIXMO~a paper size,SIXTH~one of six equal parts,SKA~a popular music of Jamaica,SKI~to travel on skis,SKRY~to scry,SPIV~an unscrupulous petty criminal,SUK~souk,SYKE~a small stream,SACK~to put into a large bag,SEW~to attach using thread,SH~used to urge silence,SKAG~heroin,SKEG~a timber that connects the keel and…,SOW~to scatter over land for growth; as seed,SPY~to watch secretly,SHH~sh,SI~ti|SE,SA,SERDO,SEJA,SIKI,SONOVAX,STATZU,SMEIK,SQUAMO,SHKIEY,SIXTEAN,SISABLY,SETEWY,SIZEP,SPUGH,SKULM,SPANKY,SPAX,SEILL,SAPADOU,SEAVE,SIAN,SPLY,SEMPLEX,SQUED,SLIFF,SPOUK,SIV,SIXPERT,SHEEK,SKELK,SMOXILY,SNOCK,SECK,SYZY,SEBE,SEZY,SYEY,SHIC,SIVE,SHET,SKE,SUT,SOG,SPIMP,SQUIREL,SOPT,SOZONE,SEXTALE,SHTICKO
+T|TIZZ~tizzy,TIZZY~a state of nervous confusion,TAZZA~an ornamental bowl,TWIZZLE~a maneuver in figure skating,TAJ~a tall; conical cap worn in Muslim countries,TZETZE~tsetse,TIX~tickets,TIZ~tizzy,TUX~a tuxedo,TZITZIS~zizith,TZITZIT~zizith,TAXI~to travel in a taxicab,TEXT~to send a message from one cell phone to…,TWIXT~between,TZAR~czar,TAV~a Hebrew letter,TAXIWAY~a paved strip at an airport,THUJA~an evergreen tree or shrub,TIVY~with great speed,TOPAZ~a bird of genus Topaza,TOQUE~a close-fitting woman's hat,TOXIC~a poisonous substance,TRANQ~trank,TSK~to utter an exclamation of annoyance,TUQUE~a knitted woolen cap,TWEEZE~to pluck with a tweezer,TWINJET~an aircraft with two jet engines,TYKE~a small child,TZADDIK~zaddik,TACK~to fasten with tacks,TAW~to convert into white leather by the…,TAXABLY~in a taxable manner,TAXIS~a restoration of displaced bones or…,TAXOL~a medicinal substance from a yew tree,TAXON~a unit of scientific classification,TAXUS~an evergreen tree or shrub,TAXWISE~pertaining to taxes,TEW~to work hard,THY~belonging to thou,TICK~to make a recurrent clicking sound,TOCK~to make a hollow sound,TORQUEY~providing force to cause rotation,TOW~to pull by means of a rope or chain,TOWY~resembling coarse hemp or flax fiber,TUBIFEX~an aquatic worm,TUCK~to fold under,TWA~two,TYPY~characterized by strict conformance to…,TA~an expression of gratitude,TAKA~a monetary unit of Bangladesh|TU,TUASTY,TRAPY,TOEXT,TORD,TEPORAM,TEI,TIELT,TOPEN,TEACKEY,TEUCILE,TIYE,TOYRO,TOOZE,THACT,TOTZE,TAOSH,TUNT,TOEDDY,TALAP,TOFA,TOUCK,TEEBACK,TASYTHE,TUIAN,TACTRIX,TEMPILL,TOKIN,TESH,TOSK,TWI,TOIS,TEXITIC,TORM,TUDY,TWIEZER,TIKO,TAPY,THRAENY,TOPA,THAP,TAI,TIG,TOI,TEEVUE,TASERN,TAING,TURAL,THORA,TERY
+U|UNVEXT~not vext,UMIAQ~umiak,UNFIX~to unfasten,UNJAM~to undo things tightly crammed together,UNVAXED~unvaccinated,UNVEXED~not vexed,UKE~ukelele,UNBOX~to remove from a box,UNMIX~to separate from a mixture,UNZIP~to open the zipper of,USQUE~usquebae,UBIQUE~everywhere,UH~used to express hesitation,ULVA~an edible seaweed,UM~to hesitate or pause in speaking,UNCRAZY~not crazy,UNISEX~the condition of not being…,UNSEXY~not sexy,UNWAXED~not waxed,UPGAZE~to gaze up,UVEA~a layer of the eye,UGH~the sound of a cough or grunt,UMM~um,UMP~to umpire,UN~one,UNFAZED~not fazed,UNJUST~not just,UPBY~upbye,UPSIZE~to increase in size,UT~the musical tone C in the French…,UMPH~oomph,UNAXED~not axed,UPO~upon,URB~an urban area,URP~to vomit,UDO~a Japanese herb,UMBO~the rounded elevation at the center of a…,UMIAK~an open Inuit boat,UMMA~the whole community of Muslims,UNDY~unde,UPBOW~a type of stroke in playing a bowed…,UVULA~the pendent; fleshy portion of the soft…,UKASE~an edict,UMPTY~umpteen,UNBE~to cease to have being,UNCO~a stranger,UPAS~an Asian tree,UPDO~an upswept hairdo,URIC~pertaining to urine,UDON~a Japanese noodle made with wheat flour|UD,UF,UL,UB,UNYONAG,UNWEN,UMMENT,UNMAPT,UNET,UNUNK,URCOIL,UTLINK,USIACK,UNOOK,UNMAIP,UNHEAIR,UNDBE,UPRAGHT,URSIAZE,UPAD,UNTLINK,UNILE,UNSURY,UNELE,UNIFT,ULTEP,UTTO,UPSA,UNIM,UNSED,UNIFE,UNOUS,UPCUE,UPAGE,URSE,UREE,URSH,UNIA,ULUN,UMBE,ULSE,USMA,UDE,UGA,UMASP,UPRAVEL,UNSCURL,UNBOSIC,UNMIKER,UPDORT
+V|VAXX~to vaccinate,VAX~to vaccinate,VEX~to annoy,VOX~voice,VOLVOX~any of a genus of freshwater protozoa,VAV~a Hebrew letter,VEEJAY~an announcer on a program of music videos,VARIX~a varicose vein,VAW~vav,VEXER~one that vexes,VEXIL~vexillum,VIVA~a shout or cry used to express approval,VIVE~used as an exclamation of approval,VIXEN~a shrewish woman,VIZIR~vizier,VIZOR~to visor,VOW~to make a solemn promise,VOXEL~each of an array of elements of volume in…,VERJUS~verjuice,VEXEDLY~in a vexed manner,VIFF~to change direction abruptly of a…,VIVIFY~to give life to,VOLK~the Afrikaner people,VAC~a vacuum cleaner,VAQUERO~a cowboy,VAQUITA~a porpoise of species Phocoena sinus,VEG~to spend time idly,VERNIX~a fatty substance covering the skin of a…,VERTEX~the highest point of something,VIG~a vigorish,VIM~energy,VIZARD~a mask,VIZIER~a high official in some Muslim countries,VIZSLA~a Hungarian breed of dog,VOG~air pollution caused by volcanic emissions,VROW~vrouw,VUG~a small cavity in a rock or lode,VALVE~to use a device to control the flow of a…,VAMP~to repair or patch,VARVE~a deposit of sedimentary material,VERVE~vivacity,VINY~covered with vines,VIVAT~viva,VIVID~strikingly bright or intense,VOLVA~a membranous sac that encloses certain…,VUGG~vug,VUGH~vug,VANG~a rope on a ship,VAPE~to inhale electrically heated vapour,VEEP~a vice president|VASUNTY,VEREIN,VORATE,VESTOE,VISOSE,VIERSET,VELOCIE,VIET,VAGGER,VANEOW,VOT,VENMAN,VIPUR,VERSAK,VIDOSE,VAILL,VULGE,VAIM,VEGI,VONOM,VOXER,VAPIZ,VISOX,VATO,VALVA,VOOLE,VOIN,VARTU,VANIL,VILN,VACEY,VOM,VOUS,VOLER,VIVO,VANO,VETA,VALY,VIOM,VAUL,VES,VIO,VAD,VAL,VANOM,VETY,VEMICA,VOCACIC,VAVACE,VEINLY
+W|WHIZZ~to whiz,WHIZZY~marvelous in construction or operation,WHIZZER~one that whizzes,WIZZEN~weasand,WAX~to coat with a natural; heat-sensitive…,WAXY~resembling wax,WIZ~a very clever or skillful person,WAXWORK~an effigy made of wax,WHIZ~to move with a buzzing or hissing sound,WAVY~having waves,WOOZY~dazed,WORKBOX~a box for holding work instruments and…,WAXLIKE~resembling wax,WAXWING~a bird of genus Bombycilla,WAXWORM~a moth that infests beehives,WHEEZY~characterized by wheezing,WOK~a cooking utensil,WACK~very bad,WALTZ~to perform a ballroom dance,WAREZ~illegally copied software,WAW~vav,WAXEN~covered with wax,WAXER~one that waxes,WAXILY~in a waxy manner,WAXWEED~an annual herb,WOODWAX~woadwax,WICK~a bundle of loosely twisted fibers in a…,WINZE~a steeply inclined mine shaft,WIVE~to marry a woman,WIZEN~to shrivel,WOADWAX~an ornamental shrub,WOW~to excite to enthusiastic approval,WACKY~very irrational,WAFF~to wave,WINK~to close and open one eye quickly,WARK~to endure pain,WAUK~to wake,WEKA~a bird of species Gallirallus australis,WHEW~a whistling sound,WIKI~a website that allows any user to add or…,WO~woe,WRY~contorted,WYE~the letter Y,WYN~wynn,WAB~a web,WAG~to move briskly up and down or to and fro,WAP~to wrap,WHACK~to strike sharply,WONKY~unsteady,WACKE~a type of basaltic rock|WI,WAKAPE,WHAMED,WADEIVE,WHALY,WHING,WHISY,WIFUL,WHIPOUT,WHIA,WILLCO,WITLY,WAITCHY,WAAR,WEG,WALARTY,WEATAP,WELY,WALUE,WEDLACK,WAVICLA,WICKY,WHAR,WAEFUER,WHORC,WICEE,WAVELER,WHYSS,WIVEN,WOLY,WHICK,WIDDI,WARL,WAK,WULE,WAU,WACE,WRUN,WERY,WOER,WHIE,WOEN,WOB,WUR,WHOMMY,WISKIN,WITONKY,WOAVER,WACKIUP,WOMMUS
+X|XEROX~to copy on a xerographic copier,XI~a Greek letter,XU~a monetary unit of Vietnam,XED~crossed out,XEROXED~xerox,XEROXES~xerox,XIS~xi,XYST~xystus,XYLYL~a univalent radical,XYLEM~a complex plant tissue,XEBEC~a Mediterranean sailing vessel,XYLAN~a substance found in cell walls of plants,XYLOL~xylene,XYLYLS~xylyl,XYSTI~xystus,XYSTS~xyst,XENIC~pertaining to a type of culture medium,XERIC~requiring only a small amount of moisture,XYLEMS~xylem,XEBECS~xebec,XENIA~the effect of pollen on certain plant…,XENON~a gaseous element,XERUS~an African ground squirrel,XYLANS~xylan,XYLENE~a flammable hydrocarbon,XYLOID~resembling wood,XYLOLS~xylol,XYLOSE~a type of sugar,XYSTER~a surgical instrument for scraping bones,XYSTOI~xystos,XYSTOS~xystus,XYSTUS~a roofed area where athletes trained in…,XANTHIC~tending to have a yellow color,XERARCH~developing in a dry area,XIPHOID~a part of the sternum,XYLENES~xylene,XYLIDIN~xylidine,XYLITOL~an alcohol,XYLOSES~xylose,XYSTERS~xyster,XANTHAN~a gum produced by bacterial fermentation,XANTHIN~a yellow pigment,XENIAL~xenia,XENIAS~xenia,XENONS~xenon,XENOPUS~a frog native to southern Africa,XEROTIC~pertaining to xerosis,XEROSES~xerosis,XEROSIS~abnormal dryness of a body part or tissue,XERUSES~xerus|XE,XA,XYLEIN,XANTHEN,XYED,XERTI,XYLASE,XANTHUN,XINES,XEC,XYLEL,XENTI,XENOPES,XYLSE,XYSLAN,XYPHOID,XANON,XESTI,XENTHIC,XYLANIC,XYLATOL,XEDIAL,XYLLANS,XYSTUED,XANTHON,XERNIAL,XECUSES,XYLENSE,XYLST,XENOFUS,XYLYLIS,XEROSIT,XEBECST,XYSTUL,XYTOI,XENUA,XYLESE,XINIAS,XYLYAN,XENEN,XYLYK,XEROLS,XENECS,XYSTES,XEROKES,XENIIN,XENONN,XYSTONS,XYLEID,XISTOS
+Y|YEZ~youse,YAJE~a yage,YOWZA~expressing surprise,YUTZ~a stupid; foolish; or ineffectual person,YUZU~a sour Japanese citrus fruit,YAKUZA~an alliance of Japanese criminal…,YUKKY~yucky,YAK~to chatter,YOK~a boisterous laugh,YUK~to laugh loudly,YACK~to yak,YAW~to deviate from an intended course,YEW~an evergreen tree or shrub,YOCK~to laugh boisterously,YOW~to yowl,YUCK~to yuk,YA~an Asian pear,YAFF~to bark,YANK~to pull suddenly,YANQUI~a United States citizen,YAWP~to utter a loud; harsh cry,YAY~yea,YE~you,YELK~yolk,YERK~to beat vigorously,YEUK~to itch,YO~used to call attention or to express…,YOKE~to join to permit the sharing of a load,YUCKY~disgusting,YAG~a synthetic garnet,YAKKER~one that yaks,YEUKY~itchy,YOLKY~resembling a yolk,YAPOK~yapock,YAWEY~pertaining to yaws,YABBY~an Australian crayfish,YAPOCK~an aquatic mammal,YAPPY~inclined to yap,YARAK~a fit condition for hunting,YECHY~disgusting,YIKES~used to express fear or pain,YOBBY~resembling a yob,YASHMAK~a veil worn by Muslim women,YASMAK~yashmak,YESHIVA~an orthodox Jewish school,YOICKS~used to encourage hunting hounds,YUPPIFY~to make appealing to yuppies,YAFFLE~the European green woodpecker,YAMALKA~yarmulke,YAMULKA~yarmulke|YT,YQ,YR,YEER,YOLKA,YUCEAN,YECHTER,YULPY,YANI,YIS,YIRUCA,YOOM,YIRT,YULA,YOGON,YONOURT,YANPIE,YAUPOH,YOUIN,YAMMY,YEAFFLE,YODLOR,YEELLEM,YOLER,YAND,YATAGAC,YACH,YABOO,YAGUM,YOULE,YAWOK,YESOW,YAIP,YAUTIE,YEEW,YORI,YEUTIA,YACA,YOC,YUGI,YIETT,YIES,YANTE,YAD,YETE,YIPOCK,YOLULE,YARY,YIPPEI,YODED
+Z|ZYZZYVA~a tropical weevil,ZZZ~used to suggest the sound of snoring,ZIZZ~to make a buzzing sound,ZIZZLE~to sizzle,ZAX~a tool for cutting roof slates,ZUZ~an ancient Hebrew silver coin,ZEK~an inmate in a Soviet labor camp,ZANZA~an African musical instrument,ZAZEN~meditation in Zen Buddhism,ZIGZAG~to proceed on a course marked by sharp turns,ZIZIT~zizith,ZA~a pizza,ZERK~a grease fitting,ZIZITH~the tassels on the four corners of a…,ZONK~to stupefy,ZOUK~a dance music of the French West Indies,ZUKE~a zucchini,ZAG~to turn sharply,ZAP~to kill or destroy instantaneously,ZELKOVA~a Japanese tree,ZEP~a long sandwich,ZIG~to turn sharply,ZINKY~zincky,ZIP~to move with speed and vigor,ZYME~an enzyme,ZANY~ludicrously comical,ZARF~a metal holder for a coffee cup,ZED~the letter Z,ZEE~the letter Z,ZINCKY~resembling zinc,ZINKIFY~to zincify,ZAKAT~payment made annually under Islamic law…,ZAPPY~zippy,ZEBECK~xebec,ZEBU~an Asian ox,ZINC~to coat with the chemical element of…,ZING~to move with a high-pitched humming sound,ZIPPY~full of energy,ZOIC~pertaining to animals or animal life,ZONKEY~the offspring of a male zebra and female…,ZOOKS~used as a mild oath,ZOOM~to move with a loud humming sound,ZEMSTVO~an elective council in czarist Russia,ZINCY~zincky,ZINGY~enjoyably exciting,ZIPLOCK~having a groove and ridge that form a…,ZOMBIFY~to turn into a zombie,ZOWEE~zowie,ZOWIE~used to express surprise or pleasure,ZAIDY~zeda|ZE,ZIKURAB,ZARMA,ZINCH,ZIPPEG,ZINNY,ZANACA,ZEIC,ZOISIS,ZOOIRAM,ZAIDES,ZINTIG,ZIRAT,ZANONA,ZEIFY,ZOOIB,ZINER,ZAZZ,ZABRASS,ZEREE,ZOOMCON,ZAPTIEB,ZINED,ZONOR,ZOEE,ZYMONER,ZADA,ZAIA,ZIKIT,ZINIG,ZINKE,ZEER,ZILT,ZOAN,ZOER,ZOE,ZOAP,ZEDO,ZANA,ZIRE,ZIB,ZAD,ZIZ,ZET,ZABET,ZIPIA,ZAPTOEH,ZORK,ZOEBA,ZAHER
+A|AB~a muscle in the abdomen,AG~agriculture,AH~to aah,AM~inflected form of BE,AA~rough; cindery lava,AE~one,AI~a three-toed sloth,AL~an East Indian tree,AR~the letter R,AUK~a bird of genus Alle,ABY~to pay the penalty for,AWA~away,AWE~to inspire with reverential fear,AWL~a pointed tool for making small holes,AWN~a bristlelike appendage of certain grasses,AFT~toward the stern,AMP~to amplify,APP~a computer program for a major task,ARF~a barking sound,AYE~an affirmative vote,AYS~inflected form of AY,AAH~to exclaim in amazement; joy; or surprise,ABA~a sleeveless garment worn by Arabs,ABS~inflected form of AB,ACE~to score a point against in a single stroke,ACT~to do something,AGA~a high-ranking Turkish military officer,AGO~in the past,AGS~inflected form of AG,AHA~used to express surprise; triumph; or…,AHI~a marine food fish,AHS~inflected form of AH,AIM~to direct toward a specified object or goal,ALB~a long-sleeved vestment,ALP~a high mountain,AMA~amah,AMI~a friend,AMU~a unit of mass,APE~to mimic,APO~a type of protein,APT~suitable,ARB~a type of stock trader,ARC~to move in a curved course,ARM~to supply with weapons,ASH~to burn into a solid residue,ASP~a venomous snake,AAS~inflected form of AA,ADD~to combine or join so as to bring about…,ADO~bustling excitement,ADS~inflected form of AD|AO,AU,AC,AF,AJ,AP,AV,AZ,APU,ATU,ANO,AWS,AJO,ASZ,AFS,AXI,APA,AUL,AHE,AUB,ALD,AME,AZA,AET,AHT,AYA,AXA,ARG,ADI,AMS,ASI,AEL,ABE,ATO,AON,AZE,AJE,ATL,AIK,AWI,AGU,ATI,ALI,AUR,ANU,AUT,AST,AIP,ACA,AAT
+B|BIB~to tipple,BIG~of considerable size,BOB~to move up and down,BOG~to impede,BOP~to hit or strike,BUB~young fellow,BUG~to annoy,BUM~of little value,BAA~to bleat,BAE~a sweetheart,BAL~a balmoral,BAN~a monetary unit of Romania,BAR~to exclude,BAS~inflected form of BA,BAT~to hit a baseball,BEE~a winged insect,BEL~a unit of power,BEN~an inner room,BET~to wager,BID~to make an offer of a price,BIN~to store in a large receptacle,BIO~a biography,BIS~inflected form of BI,BIT~inflected form of BITE,BOA~a large snake,BOD~a body,BOO~to make a certain disapproving noise,BOS~inflected form of BO,BOT~the larva of a fly of family Oestridae,BRA~a brassiere,BRO~a brother,BRR~brrr,BUD~to put forth buds,BUN~a small bread roll,BUR~to burr,BUS~to transport in a large motor vehicle,BARK~to cry like a dog,BASK~to lie in a pleasant warmth,BEAK~a bird's bill,BERK~a foolish person,BIFF~to hit,BIKE~to bicycle,BILK~to cheat,BIRK~a birch tree,BISK~bisque,BONK~to hit on the head with a hollow blow,BORK~to attack a candidate in the media,BOSK~a small wooded area,BUFF~having a muscular physique,BULK~to gather into a mass|BOM,BEB,BOK,BIE,BAB,BEA,BUH,BEP,BUP,BIL,BEO,BAU,BER,BIC,BIU,BOI,BUL,BEZ,BAO,BOL,BIF,BEM,BEF,BOF,BIM,BOZ,BAW,BIA,BUE,BAI,BOV,BAF,BEW,BOR,BUC,BEV,BABO,BUOD,BRUP,BODO,BLOM,BUOS,BETT,BEGA,BEFT,BROD,BIDD,BIVE,BINK,BIFU
+C|CEP~cepe,CHI~a Greek letter,CIG~a cigarette,COB~a corncob,COG~to cheat at dice,COP~to steal,CUB~to give birth to the young of certain…,CAD~an ungentlemanly man,CAL~a calorie,CEE~the letter C,CEL~a sheet of celluloid used in animation,CIS~having certain atoms on the same side of…,COD~to fool,COL~a depression between two mountains,CON~to study carefully,COO~to make the sound of a dove,COR~an ancient unit of measure,COS~a variety of lettuce,COT~a light; narrow bed,CRU~a grade or class of wine,CUD~a portion of food to be chewed again,CUE~to give a signal to an actor,CUR~a mongrel dog,CAVE~to hollow out,COCK~to tilt to one side,COVE~to curve over or inward,COWY~suggestive of a cow,CAFF~a caf,CALK~to caulk,CARK~to worry,CASK~to store in a strong barrel,CHAW~to chew,CHEW~to crush or grind with the teeth,CHOW~to eat,COFF~to buy,COKE~to change into a carbon fuel,CONK~to hit on the head,CORK~to stop up,CUFF~to strike with an open hand,CUKE~a cucumber,CUSK~a marine food fish,CWMS~inflected form of CWM,CAGY~cagey,CAWS~inflected form of CAW,CHAY~the root of an East Indian herb,CHEF~to work as a chief cook,CLAW~to scratch with claws,CLEW~to roll into a ball,COWL~to cover with a hood,COWS~inflected form of COW|COV,CUC,COC,CHU,CAG,CUL,COE,CRA,CED,COU,CEA,CIO,CEV,CIT,CAH,COK,CRI,CIC,CEY,CIL,CUN,CAC,CAI,COJD,CUBO,CHAB,CRAK,CAWT,CAHR,CHOR,CAGI,CHEI,CIEN,CYMO,COMI,CEBA,CAHA,CITS,COWI,CLOB,CARF,CUBT,CLID,CLIN,CHEC,CRIG,CURO,CUMA,CIAU,COTO
+D|DYE~to treat with a coloring matter,DAB~to touch lightly,DAG~a hanging end or shred,DAH~a dash in Morse code,DAM~to build a barrier to obstruct the flow…,DAP~to dip lightly or quickly into water,DEB~a debutante,DEP~a convenience store,DIB~to fish by letting the bait bob lightly…,DIG~to break up; turn over; or remove earth,DIM~obscure,DIP~to immerse briefly,DOC~doctor,DOH~the first tone of the diatonic scale,DOM~a title given to certain monks,DUB~to confer knighthood on,DUG~the teat or udder of a female mammal,DUH~used to indicate that something just…,DUM~cooked with steam,DUP~to open,DAD~father,DAL~a dish of lentils and spices in India,DAN~a level of skill in martial arts,DAS~inflected form of DA,DEE~the letter D,DEL~an operator in differential calculus,DEN~to live in a lair,DIE~to cease living,DIN~to make a loud noise,DIS~to insult or criticize,DIT~a dot in Morse code,DOE~a female deer,DOL~a unit of pain intensity,DON~to put on,DOR~a black European beetle,DOT~to cover with dots,DUD~a bomb that fails to explode,DUI~inflected form of DUO,DUN~of a dull brown color,DUO~an instrumental duet,DEVA~a Hindu god,DEVI~a Hindu goddess,DEVS~inflected form of DEV,DEWY~moist with dew,DHAK~an Asian tree,DIVA~a distinguished female operatic singer,DIVE~to plunge headfirst into water,DOCK~to wharf,DOVE~a bird of genus Columba,DUCK~to lower quickly|DIZ,DOB,DUY,DIL,DOP,DUU,DEC,DEI,DUR,DOV,DEG,DAT,DOA,DIU,DIH,DUK,DAZ,DIC,DUS,DUV,DUL,DED,DUT,DAR,DRU,DOO,DAC,DAX,DYI,DEH,DOI,DAI,DES,DYA,DUF,DRO,DUC,DUA,DOF,DEO,DUVA,DUBE,DOBI,DEMI,DUAN,DOWF,DUOT,DANT,DOZI,DIBI
+E|ED~education,EL~an elevated railroad or train,EN~half of an em,ER~used to express hesitation,ES~ess,ET~inflected form of EAT,EBB~to recede,EFS~inflected form of EF,EFT~a newt,EGG~to incite or urge,ELF~a small; often mischievous fairy,ECO~ecology,ECU~an old French coin,EDH~an Old English letter,EGO~the conscious self,ELM~a deciduous tree of genus Ulmus,EME~an uncle,EMO~a style of rock music with emotional lyrics,EMS~inflected form of EM,EMU~a bird of species Dromaius novaehollandiae,ENG~a phonetic symbol,ERG~a unit of work or energy,ETH~edh,EAR~to form the fruiting head of a cereal,EAU~water,EDS~inflected form of ED,EEL~to move sinuously,ELD~old age,ELL~a perpendicular extension to a building,ELS~inflected form of EL,ENS~inflected form of EN,EON~an indefinitely long period of time,ERA~an epoch,ERE~before,ERN~erne,ERR~to make a mistake,ERS~ervil,ESS~the letter S,EST~a group technique for raising self-awareness,ETA~a Greek letter,EAUX~inflected form of EAU,EXED~inflected form of EX,EXES~inflected form of EX,EVES~inflected form of EVE,EFFS~inflected form of EFF,EKED~inflected form of EKE,EKES~inflected form of EKE,ELKS~inflected form of ELK,EYRY~aerie,EDGY~tense; nervous; or irritable|EA,EE,EI,EO,EU,EY,EBS,ETE,ETU,EES,EPO,EPS,EKA,ECK,ENH,EWN,ECS,EPE,ERB,ELB,ERO,ERC,ELP,EET,EVO,EBU,EAL,EUK,ENI,EUT,EMA,EKU,ERM,EOS,EGU,EOL,ECT,EAD,EUP,EUR,EGES,EDGI,ESON,EECY,EURU,EEMS,EUTS,EPOE,ESNA,ECUZ
+F|FAH~fa,FAM~a family,FEH~peh,FEM~an effeminate gay man,FIB~to tell a trivial lie,FIG~to adorn,FOB~to deceive,FOG~to cover with condensed water vapor near…,FOH~faugh,FOP~to deceive,FUB~to fob,FUG~to make stuffy and odorous,FAD~a practice or interest that enjoys brief…,FAN~to cool by moving air,FAR~at or to a great distance,FAS~inflected form of FA,FED~a federal agent,FEE~to pay a fixed charge to,FEN~a marsh,FER~for,FES~inflected form of FE,FET~to fetch,FEU~to grant land to under Scottish feudal law,FID~a square bar used as a support for a topmast,FIE~used to express disapproval,FIL~a coin of Iraq and Jordan,FIN~to equip with fins,FIR~an evergreen tree,FLU~a virus disease,FOE~an enemy,FON~foehn,FOO~a name for temporary computer variables…,FOU~drunk,FRO~away,FUD~an old-fashioned person,FUR~to cover with a dressed animal pelt,FIXT~inflected form of FIX,FOLX~inflected form of FOLK,FUZE~to fuse,FYKE~a bag-shaped fishnet,FAVA~a bean plant of species Vicia faba,FAVE~favorite,FAVS~inflected form of FAV,FECK~value,FAFF~to make a fuss,FAKE~not genuine,FILK~a type of popular music that parodies…,FINK~to inform to the police,FLAK~antiaircraft fire,FOLK~a people or tribe|FIV,FAL,FEX,FOC,FEB,FAU,FEI,FUL,FOD,FUT,FOS,FIO,FUS,FRU,FIS,FOV,FUE,FUH,FAI,FAF,FOT,FOI,FEL,FOM,FUM,FIC,FEV,FAJ,FOW,FOL,FRI,FEO,FIM,FAZ,FOA,FIF,FRAU,FOVA,FEOR,FAUL,FONO,FOWS,FESY,FARA,FECI,FUHS,FIOD,FOCE,FEUM,FOCO
+G|GIB~to fasten with a wedge of wood or metal,GIG~to catch fish with a pronged spear,GIP~to gyp,GOB~to fill a mine pit with waste material,GUM~to clog with a sticky; viscid substance,GAD~to roam about restlessly,GAE~to go,GAL~a girl,GAN~GIN; to begin,GAR~to cause or compel,GAT~a pistol,GED~a food fish,GEE~to turn to the right,GEL~to become like jelly,GEN~to provide or obtain information,GID~a disease of sheep,GIE~to give,GIN~to begin,GIS~inflected form of GI,GIT~to get,GNU~a large antelope,GOA~an Asian gazelle,GOO~a sticky or viscid substance,GOR~used as a mild oath,GRR~used to express anger or annoyance,GUL~a design in oriental carpets,GUT~to remove the guts,GAVE~inflected form of GIVE,GUVS~inflected form of GUV,GINK~a fellow,GOOK~goo,GROK~to understand intuitively,GUFF~foolish talk,GUNK~to cause something to be gunky,GABY~a dolt,GAMY~plucky,GLOW~to emit light and heat,GNAW~to wear away by persistent biting,GOBY~a small fish,GOWD~gold,GOWN~to dress in a long; loose outer garment,GREW~inflected form of GROW,GYBE~to shift from side to side while sailing,GYMS~inflected form of GYM,GYPO~a small-time logging operator,GACH~to gatch,GAMB~a leg,GAMP~a large umbrella,GAYS~GAY; a person who is attracted to people…,GIFS~inflected form of GIF|GIV,GUP,GEW,GOG,GOI,GNO,GUA,GUB,GIR,GAH,GOL,GES,GUZ,GIM,GOC,GAW,GUR,GIA,GHO,GOU,GII,GOF,GEP,GUF,GAV,GUS,GAO,GROF,GLOS,GERT,GOVS,GERO,GARL,GEIT,GLER,GIMY,GIRU,GYRA,GUES,GALF,GLAH,GIRY,GACK,GOID,GAMI,GAWE,GONU,GJEU,GNOG,GASK
+H|HAH~ha,HAM~to overact,HAP~to happen,HEH~a Hebrew letter,HEM~to provide with an edge,HEP~hip,HIC~used to represent a hiccup,HIP~aware of the most current styles and trends,HOB~to furnish with hobnails,HOG~to take more than one's share,HOM~a sacred plant of the ancient Persians,HOP~to move by jumping on one foot,HUB~the center of a wheel,HUG~to clasp tightly in the arms,HUH~used to express surprise,HUM~to sing without opening the lips or…,HUP~used to mark a marching cadence,HAE~to have,HAO~a monetary unit of Vietnam,HEN~a female chicken,HET~heth,HID~HIDE; to conceal,HIE~to hurry,HIN~a Hebrew unit of liquid measure,HOD~a portable trough,HOE~to use a certain gardening tool,HON~a honeybun,HOO~used to express surprise or apprehension,HUE~color,HUN~a barbarous; destructive person,HUT~to live in a simple shelter,HOVE~inflected form of HEAVE,HOWF~a place frequently visited,HUCK~to throw,HWYL~an emotion that inspires impassioned…,HAIK~an outer garment worn by Arabs,HAKE~a marine fish,HAKU~a crown of flowers,HANK~to fasten a sail,HARK~to listen to,HIKE~to walk a long distance,HOKE~to give false value to,HOLK~to howk,HONK~to emit a cry like that of a goose,HOOK~to catch with a bent piece of metal,HORK~to spit,HUFF~to breathe heavily,HULK~to appear impressively large,HUNK~a large piece,HUSK~to remove the outer covering from|HAB,HEB,HEE,HOR,HOC,HYS,HEC,HIR,HUR,HIL,HAU,HAN,HEG,HEF,HII,HIK,HUF,HAK,HOL,HUC,HUD,HEV,HIG,HAF,HIF,HUL,HOU,HYG,HED,HUI,HUS,HESS,HALS,HAEA,HURE,HODE,HAUK,HUBO,HULS,HAZH,HAWM,HERK,HIOT,HYMB,HAGE,HAWP,HESP,HEAK,HENG,HOOV
+I|IDS~inflected form of ID,INN~to put up at a public lodging house,ION~an electrically charged atom,IRE~to anger,ICKS~inflected form of ICK,ILKS~inflected form of ILK,INKS~inflected form of INK,IRKS~inflected form of IRK,IAMB~a type of metrical foot,ICHS~inflected form of ICH,IDLY~in an idle manner,IDYL~a poem or prose work depicting scenes of…,IGGS~inflected form of IGG,IMAM~a Muslim priest,IMPI~a body of warriors,IMPS~inflected form of IMP,INCH~to move very slowly,INFO~information,ITCH~to have an uneasy or tingling skin sensation,IBIS~a bird of genus Threskiornis,ICON~a representation,IDEM~the same,IGLU~igloo,IMID~imide,ISBA~a Russian log hut,ISMS~inflected form of ISM,ITEM~to itemize,IDES~a certain day in the ancient Roman calendar,IDLE~inactive,IDOL~an object of worship,ILEA~inflected form of ILEUM,ILIA~inflected form of ILIUM,INIA~inflected form of INION,INNS~inflected form of INN,INRO~a Japanese ornamental container,INTI~a former monetary unit of Peru,IONS~inflected form of ION,IOTA~a Greek letter,IRED~inflected form of IRE,IRES~inflected form of IRE,IRID~a plant of the iris family,IRIS~a part of the eye,ISLE~to place on a small island,IXIAS~inflected form of IXIA,IZARS~inflected form of IZAR,IVIES~inflected form of IVY,IKATS~inflected form of IKAT,IKONS~inflected form of IKON,INKED~inflected form of INK,IRKED~inflected form of IRK|ISS,IDE,IKH,IDL,ILOX,IDEL,ILKO,ITAN,ISBE,ITOM,IRAS,ITEA,IMMI,IBEC,IDIK,IRIB,IXIE,ICOL,ICEL,ICAS,IRNS,IPAS,IFFE,IOBO,IKAS,ICOD,ISKS,ISME,INID,ILLE,IMBO,IWIL,IKOP,IFFU,IROK,IFFI,IDOH,IRAN,IGIA,IMIA,IZES,IMNI,IMPH,IRLED,ILHOR,IRODI,INDEE,INSAM,ILSET,IRDIL
+J|JAR~to cause to shake,JEE~to gee,JET~to spurt forth in a stream,JEU~a game,JIN~jinn,JOE~a fellow,JOT~to write down quickly,JUN~a coin of North Korea,JUS~a legal right,JUT~to protrude,JEUX~inflected form of JEU,JIFF~jiffy,JINK~to move quickly out of the way,JOOK~a tavern that has a jukebox,JOUK~to dodge,JUKE~to fake out of position,JUKU~an additional school in Japan for…,JUNK~to discard as trash,JAWS~inflected form of JAW,JOWL~the fleshy part under the lower jaw,JOWS~inflected form of JOW,JAGG~to jag,JAMB~to jam,JAYS~inflected form of JAY,JEFE~a chief,JIBB~to shift from side to side while sailing,JIMP~natty,JOEY~a young kangaroo,JOYS~inflected form of JOY,JUDY~a woman,JABS~inflected form of JAB,JAGS~inflected form of JAG,JAMS~inflected form of JAM,JAPE~to mock,JAUP~to splash,JEEP~to travel by a small type of motor vehicle,JEHU~a fast driver,JIBE~to gibe,JIBS~inflected form of JIB,JIGS~inflected form of JIG,JOGS~inflected form of JOG,JOHN~a toilet,JOSH~to tease,JUBA~a lively dance,JUBE~a platform in a church,JUCO~a junior college,JUGA~inflected form of JUGUM,JUGS~inflected form of JUG,JUPE~a woman's jacket,JADE~to weary|JOA,JEG,JUV,JIT,JUK,JAD,JER,JUM,JIC,JAP,JIRN,JEDS,JEGS,JONS,JAUF,JUIR,JIHS,JUNE,JELE,JOTI,JIVI,JULS,JARE,JISS,JATS,JIES,JOED,JACT,JUDE,JALS,JUBS,JAUT,JAST,JEUN,JOHS,JAES,JERE,JATZ,JUSA,JAKU,JOSM,JUVS,JUPH,JULA,JUMA,JINT,JIVA,JAWN,JADO,JOMP
+K|KIP~to sleep,KOB~a reddish brown antelope,KOP~a hill,KAE~a bird resembling a crow,KAS~inflected form of KA,KAT~an evergreen shrub,KEA~a bird of species Nestor notabilis,KEN~to know,KIN~a group of persons of common ancestry,KIR~an alcoholic beverage,KIS~inflected form of KI,KIT~to equip,KOA~a timber tree,KOI~a large and colorful fish,KOR~a Hebrew unit of measure,KOS~a land measure in India,KUE~the letter Q,KOOK~an eccentric person,KHAF~kaph,KIWI~a bird of genus Apteryx,KAFS~inflected form of KAF,KAIF~kef,KAPH~a Hebrew letter,KAYO~to knock out,KAYS~inflected form of KAY,KEEF~kef,KEFS~inflected form of KEF,KEMP~a champion,KERF~to make an incision with a cutting tool,KIEF~kef,KIFS~inflected form of KIF,KOPH~a Hebrew letter,KRAY~krai,KUFI~a brimless hat,KYAR~coir,KYAT~a monetary unit of Myanmar,KYES~inflected form of KYE,KYTE~the stomach,KABS~inflected form of KAB,KAGU~a bird of species Rhynochetos jubatus,KAME~a mound of detrital material,KAMI~a sacred power or force,KAPA~a coarse cloth,KAPU~a Hawaiian set of rules for daily life,KBAR~a kilobar,KEGS~inflected form of KEG,KELP~to burn a type of seaweed,KEPI~a type of cap,KEPS~inflected form of KEP,KEPT~inflected form of KEEP|KAA,KUK,KUB,KIL,KUA,KON,KAM,KUS,KOE,KAC,KUD,KAJ,KEI,KOU,KEM,KOW,KEL,KAZE,KAOI,KULT,KULO,KELO,KIWA,KUDI,KERD,KOMS,KIVI,KAIM,KEEM,KAUF,KNOD,KOJU,KUKI,KORN,KEIF,KARI,KLAI,KIAT,KIWE,KBAN,KOAT,KEED,KULE,KAEN,KHEN,KULN,KALL,KUEN,KUCA,KEDS
+L|LAY~LIE; to be in or get into a horizontal…,LYE~a solution used in making soap,LAB~a laboratory,LAC~a resinous substance secreted by certain…,LAG~to stay or fall behind,LAH~la,LAM~to flee hastily,LAP~to fold over or around something,LIB~liberation,LOB~to throw or hit in a high arc,LOC~to make into dreadlocks,LOG~to cut down trees for timber,LOP~to cut off branches or twigs from,LUG~to carry or pull with effort,LUM~a chimney,LAD~a boy or youth,LAR~a tutelary god or spirit of an ancient…,LAS~inflected form of LA,LAT~a muscle of the back,LEA~a meadow,LED~LEAD; to show the way to by going in advance,LEE~shelter from the wind,LEI~inflected form of LEU,LET~to hinder,LEU~a monetary unit of Romania,LID~to provide with a movable cover,LIN~linn,LIS~inflected form of LI,LIT~the litas,LOO~to subject to a forfeit at a card game,LOR~used to express surprise,LUD~a form of address to a judge in a court,LUN~a lee,LAVS~inflected form of LAV,LEVA~inflected form of LEV,LEVS~inflected form of LEV,LUVS~inflected form of LUV,LANK~long and slender,LARK~to engage in harmless mischief,LEAK~to permit the escape of something through…,LEEK~an herb used in cookery,LEKE~LEK; a monetary unit of Albania,LEKS~LEK; a monetary unit of Albania,LEKU~LEK; a monetary unit of Albania,LUFF~to steer a sailing vessel nearer into the…,LUNK~a lunkhead,LURK~to wait in concealment,LYCH~lich,LACY~resembling lacework,LAWN~to cover land with ornamental grass|LER,LUB,LOL,LUK,LUE,LEC,LOD,LIC,LOS,LUP,LIV,LAU,LAN,LYO,LEF,LOA,LEO,LIG,LIX,LEW,LOF,LOM,LEB,LOU,LES,LEN,LAF,LIZ,LIR,LAI,LUT,LII,LON,LONC,LIMS,LIFA,LOLM,LAIM,LUFY,LEGH,LAVO,LAAS,LICO,LIMU,LARO,LAHE,LODI,LUPS,LOFY,LONN
+M|MU~a Greek letter,MAC~a raincoat,MAG~a magazine,MAM~mother,MEG~a megabyte,MEH~not impressive,MEM~a Hebrew letter,MHO~a unit of electrical conductance,MIB~a type of playing marble,MIC~a microphone,MIG~a type of playing marble,MIM~primly demure,MOB~to crowd about,MOC~a moccasin,MOG~to move away,MOP~to wipe with a certain implement for…,MUG~to assault with intent to rob,MUM~to act in a disguise,MAD~insane,MAE~more,MAR~to detract from the perfection or…,MAS~inflected form of MA,MAT~to pack down into a dense mass,MEL~honey,MEN~MAN; an adult human male,MET~inflected form of MEET,MID~neither great nor terrible,MIL~a unit of length,MIR~a Russian peasant commune,MIS~inflected form of MI,MOA~an extinct flightless bird,MOD~hip,MOI~used to feign surprised innocence,MOL~mole,MON~man,MOO~to make the deep; moaning sound of a cow,MOR~a forest humus,MOS~inflected form of MO,MOT~a witty saying,MUN~man,MUS~inflected form of MU,MUT~mutt,MIXT~inflected form of MIX,MAKO~a large shark,MASK~to cover the face,MEEK~lacking in spirit and courage,MERK~a former coin of Scotland,MIFF~to annoy,MIKE~to amplify or record by use of a microphone,MINK~a carnivorous mammal|MIT,MEZ,MIF,MEX,MUL,MUF,MEI,MUC,MIN,MUK,MEP,MAJ,MAB,MOH,MAA,MAU,MUO,MAF,MIA,MOX,MOK,MUR,MAV,MOV,MEK,MEY,MIE,MUP,MIO,MIH,MAH,MPE,MAZ,MIK,MOZ,MOF,MUH,MAK,MNE,MEA,MBO,MUKE,MEAR,MIRD,MEID,MIFE,MEUK,MOKY,MAMI,MAPU
+N|NAM~inflected form of NIM,NEG~a photographic negative,NIB~to provide with a penpoint,NIM~to steal,NIP~to pinch,NOB~a wealthy person,NOG~to fill in a space in a wall with bricks,NOH~the classical drama of Japan,NOM~a name,NTH~pertaining to an indefinitely large…,NUB~a protuberance or knob,NUG~a chunk of wood sawn from a log,NAE~no,NAN~a round flat bread,NEE~born with the name of,NET~to catch in a type of openwork fabric,NIL~nothing,NIT~the egg of a parasitic insect,NOO~now,NOR~and not,NUN~a woman belonging to a religious order,NUS~inflected form of NU,NUT~to gather nuts,NIXE~NIX; a water sprite,NAVS~inflected form of NAV,NEVI~inflected form of NEVUS,NOOK~a corner; as in a room,NUFF~enough,NUKE~to attack with nuclear weapons,NEWT~a small salamander,NOWT~naught,NYAH~used to express contempt for another,NAIF~a naive person,NARY~not one,NAYS~inflected form of NAY,NEIF~nieve,NIGH~near,NOGG~a strong ale,NOSY~unduly curious,NUMB~lacking sensation,NABE~a neighborhood movie theater,NABS~inflected form of NAB,NAGA~a half-snake; half-human creature in…,NAGS~inflected form of NAG,NAPA~a soft leather,NAPE~the back of the neck,NAPS~inflected form of NAP,NARC~an undercover drug agent,NEAP~a tide of lowest range,NEBS~inflected form of NEB|NEU,NAD,NIV,NEC,NEY,NIE,NEL,NUP,NAC,NAI,NES,NOV,NED,NUF,NAR,NON,NOU,NOZ,NEO,NOX,NOC,NIN,NAZ,NOBA,NAKE,NOUT,NOAN,NEKS,NONT,NIPY,NAUF,NIRA,NILM,NEWN,NADI,NURY,NUPA,NOSU,NUCA,NOOF,NIHO,NIFE,NEES,NINO,NOOZ,NEIL,NURF,NOIF,NEGI,NURK
+O|OM~a mantra used in contemplation of…,OP~a style of abstract art,OD~a hypothetical force of natural power,OE~a whirlwind off the Faeroe islands,OI~oy,OS~a bone,OVA~inflected form of OVUM,OWL~a bird of genus Tyto,OWT~anything,OAF~a clumsy; stupid person,OCH~used to express surprise or regret,OFT~often,OHM~a unit of electrical resistance,OOF~used to express discomfort,OBA~a hereditary chief in Benin and Nigeria,OBE~obeah,OBI~obeah,OCA~a South American herb,OHO~used to express surprise or exultation,OHS~inflected form of OH,OMA~grandmother,OMS~inflected form of OM,OOH~to exclaim in amazement; joy; or surprise,OPA~grandfather,OPE~to open,OPS~inflected form of OP,OPT~to choose,ORB~to form into a circle or sphere,ORC~a marine mammal,ORG~an organization,OAR~to propel with oars,OAT~a cereal grass,ODA~a room in a harem,ODE~a lyric poem,ODS~inflected form of OD,OES~inflected form of OE,OLE~a shout of approval,ONO~a large mackerel,OOT~out,ORA~OS; an orifice,ORE~a mineral or rock containing a valuable…,ORT~a scrap of food,OSE~an esker,OUD~a stringed instrument of northern Africa,OXEN~OX; a hoofed mammal,OXES~OX; a clumsy person,OKEH~approval,OVAL~a planar shape resembling an egg,OWLY~owlish,OAKS~inflected form of OAK|OA,OO,OU,OB,OG,OL,OET,OTA,OCO,OIS,OLU,OLA,OWI,ONA,OOR,OXA,OEN,OOM,ORO,OAL,ONG,OBB,OUN,OTS,OKO,OLO,OPO,OZE,OIR,OIF,ORR,OXI,OGE,OCE,OFA,OUL,OSA,ORN,OSO,OUF,OWS,OUC,OPY,OAM,ORPO,OMAL,OOZI,OIST,OOFT,OUZI
+P|PI~a Greek letter,PO~a chamber pot,PLY~to supply with or offer repeatedly,PRY~to inquire impertinently into private…,PYA~a copper coin of Myanmar,PYE~a book of ecclesiastical rules in the…,PAC~a shoe like a moccasin,PAH~used as an exclamation of disgust,PAM~the jack of clubs in certain card games,PAP~a soft food for infants,PEC~a chest muscle,PEG~to fasten with a wooden pin,PEH~pe,PEP~to fill with energy,PHI~a Greek letter,PHO~a Vietnamese noodle soup,PHT~used as an expression of mild anger or…,PIC~a photograph,PIG~to bear pigs,PIP~to break through the shell of an egg,POH~used to express disgust,POM~a Pomeranian dog,POP~to make a sharp; explosive sound,PUB~a tavern,PUG~to fill in with clay or mortar,PUP~to give birth to puppies,PAD~to line or stuff with soft material,PAL~to associate as friends,PAN~to criticize harshly,PAR~to shoot in a standard number of strokes…,PAS~inflected form of PA,PAT~known thoroughly,PEA~the edible seed of an annual herb,PED~a natural soil aggregate,PEE~to urinate,PES~inflected form of PE,PIA~a membrane of the brain,PIE~to pi,PIN~to fasten with a slender; pointed piece…,PIS~PI; a Greek letter,PIT~to mark with cavities or depressions,PIU~more,POD~to produce seed vessels,POI~a Hawaiian food,POL~a politico,POO~to defecate,POS~inflected form of PO,PRO~an argument or vote in favor of something,PSI~a Greek letter,PST~psst|PUM,PRI,PEB,PAB,PEO,POU,PAJ,PIR,PIB,POR,PUC,PIO,PAA,PIL,POZ,POB,PUZ,POG,PEM,PLU,PEL,PTA,POV,PLA,PIV,PON,PYO,POC,PAZ,PAI,PAU,PII,PRU,PIF,PUI,PSA,PEX,PLE,PAV,PUK,PEI,PIK,PAG,PUE,PID,PUF,PRE,PSE,PHE,POE
+Q|QIS~inflected form of QI,QATS~inflected form of QAT,QOPHS~inflected form of QOPH,QUAYS~inflected form of QUAY,QUEYS~inflected form of QUEY,QUAGS~inflected form of QUAG,QUBIT~a quantum bit,QUIPS~inflected form of QUIP,QUIPU~an ancient calculating device,QUOTH~to have said,QURSH~a monetary unit of Saudi Arabia,QADIS~inflected form of QADI,QAIDS~inflected form of QAID,QANAT~a system of underground tunnels and wells…,QUADS~inflected form of QUAD,QUAIL~to cower,QUAIS~inflected form of QUAI,QUALE~a property considered apart from things…,QUANT~to propel through water with a pole,QUARE~queer,QUASI~similar but not exactly the same,QUASS~kvass,QUATE~quiet,QUEAN~a harlot,QUELL~to suppress,QUERN~a hand-turned grain mill,QUESO~a melted cheese sauce with chili peppers,QUEST~to make a search,QUEUE~to line up,QUIDS~inflected form of QUID,QUILL~to press small ridges in,QUILT~to stitch together with padding in between,QUINS~inflected form of QUIN,QUINT~a group of five,QUIRE~to arrange sheets of paper in sets of…,QUIRT~to strike with a riding whip,QUODS~inflected form of QUOD,QUOIN~to secure with a type of wedge,QUOIT~to play a throwing game similar to ringtoss,QUOLL~a small spotted marsupial,QUOTA~a proportional part or share,QAJAQS~inflected form of QAJAQ,QAPIKS~inflected form of QAPIK,QUACKS~inflected form of QUACK,QUAFFS~inflected form of QUAFF,QUAKED~inflected form of QUAKE,QUAKER~one that quakes,QUAKES~inflected form of QUAKE,QUARKS~inflected form of QUARK,QUIFFS~inflected form of QUIFF|QAW,QUIA,QUEDS,QUALU,QUILS,QUASK,QUAMS,QAIPS,QUENT,QUAFS,QUORT,QUAPS,QUERD,QUARA,QAPIT,QUADE,QUAWF,QUATI,QUOKY,QINAT,QUOKS,QUEIS,QUORY,QUANS,QUESI,QUITH,QUAWK,QUERA,QUOYS,QANOT,QUEAZ,QUOTS,QAIET,QUOTO,QAITE,QAILE,QUIRL,QUESY,QUAUS,QUISI,QUEGS,QUILLB,QUAERI,QUACKA,QAILTS,QUANGA,QUINCA,QUENTS,QIVIAT,QUACES
+R|RAG~to scold,RAH~used to cheer on a team or player,RAM~to strike with great force,RAP~to strike sharply,REB~a Confederate soldier,REC~recreation,REG~a regulation,REM~a quantity of ionizing radiation,REP~to represent,RHO~a Greek letter,RIB~to poke fun at,RIG~to put in proper condition for use,RIM~to provide with an outer edge,RIP~to tear or cut apart roughly,ROB~to take property from illegally,ROC~a legendary bird of prey,ROM~a Gypsy man or boy,RUB~to move along the surface of a body with…,RUG~to tear roughly,RUM~odd,RAD~very appealing or good,RAI~a style of popular Algerian music,RAN~inflected form of RIN,RAS~an Ethiopian prince,RAT~to hunt rats,REE~the female Eurasian sandpiper,REI~an erroneous English form for a former…,RES~inflected form of RE,RET~to soak in order to loosen the fiber from…,RIA~a long; narrow inlet,RID~to free from something objectionable,RIN~to run or melt,ROD~to provide with a straight; slender piece…,ROE~the mass of eggs within a female fish,ROO~a kangaroo,ROT~to decompose,RUE~to feel sorrow or remorse for,RUT~to make ruts,REVS~inflected form of REV,ROVE~inflected form of REEVE,RAFF~riffraff,RAKE~to gather with a toothed implement,RAKI~a Turkish liqueur,RAKU~a form of Japanese glazed pottery,REEK~to give off a strong; unpleasant odor,RIFF~to riffle,RINK~a surface of ice for skating,ROOK~to swindle,RUFF~to trump,RUSK~a sweetened biscuit|RIK,RUC,RAE,RAR,RAB,RUF,ROI,ROK,RIO,RIR,REH,RIE,REN,RAU,RIT,RUL,RAL,ROL,RON,ROU,RAF,REU,RUH,RIC,RIV,ROA,RUD,RUR,REL,ROG,RUS,RIX,RAZ,RUV,RAC,RHE,RII,RIS,RYED,RIEF,RIJA,RITH,RARP,RETI,REGO,REUK,RATI,ROGU,RUDS,ROSS
+S|SEZ~inflected form of SAY,SOX~SOCK; a knitted or woven covering for the…,SLY~crafty,STY~to keep in a pigpen,SYN~syne,SAB~to sob,SAC~a pouch-shaped structure in an animal or…,SAG~to bend or sink downward from weight or…,SAP~to deplete or weaken gradually,SEC~secant,SHA~used to urge silence,SHO~sure,SIB~a sibling,SIC~to urge to attack,SIG~a short personalized message at the end…,SIM~simulation,SIP~to drink in small quantities,SOB~to cry with a convulsive catching of the…,SOC~a sociology course,SOH~sol,SOM~a monetary unit of Kyrgyzstan,SOP~to dip or soak in a liquid,SPA~a mineral spring,SUB~to act as a substitute,SUP~to eat supper,SAE~so,SAL~salt,SAN~a sanatorium,SAT~inflected form of SIT,SAU~xu,SEA~the ocean,SEI~a rorqual,SEL~self,SEN~a monetary unit of Japan,SER~a unit of weight of India,SET~to put in a particular position,SIN~to commit an offense against religious or…,SIS~inflected form of SI,SOL~the fifth tone of the diatonic musical scale,SON~a male child,SOT~a habitual drunkard,SOU~a formerly used French coin,SRI~sir,SUE~to institute legal proceedings against,SUS~to suss,SUQS~inflected form of SUQ,SEVS~inflected form of SEV,SKIM~to remove floating matter from the…,SKIP~to move with light springing steps,SUCK~to draw in by establishing a partial vacuum|SEP,SOF,SAJ,SUC,SRA,SUD,SMA,SEM,SAM,SEY,SNE,SOI,SAI,STI,SOA,STO,SAR,SKU,SEB,SHU,SAF,SIK,SOK,SME,SOR,SHI,SOE,SPE,SPU,SUL,SED,SUR,SFY,SOZ,SAH,SIE,SNY,SOO,SLI,SIZ,SMY,SIF,SUZ,STE,SLO,SIRO,STON,SLEP,SKAD,SIRA
+T|TE~ti,TI~the seventh tone of the diatonic musical…,TYE~a chain on a ship,TAB~to name or designate,TAG~to provide with an identifying marker,TAM~a tight-fitting Scottish cap,TAP~to strike gently,TEC~tech,TEG~tegg,THO~though,TIC~to have an involuntary muscular contraction,TOG~to clothe,TOM~the male of various animals,TUB~to wash in a round; open vessel,TUG~to pull with force,TUM~a person's stomach,TAD~a small boy,TAE~to,TAN~brown from the sun's rays,TAO~the path of virtuous conduct according to…,TAR~to cover with a black; viscous liquid,TAS~inflected form of TA,TAT~to make tatting,TAU~a Greek letter,TED~to spread for drying,TEE~to place a golf ball on a small peg,TEL~an ancient mound in the Middle East,TES~inflected form of TE,TET~teth,TIL~the sesame plant,TIN~to cover with the chemical element whose…,TIS~inflected form of TI,TIT~a bird of genus Cephalopyrus,TON~a unit of weight,TOO~in addition,TOR~a high; craggy hill,TOT~to total,TUI~a bird of species Prosthemadera…,TUN~to store in a large cask,TUT~to utter an exclamation of impatience,TAXA~inflected form of TAXON,TAVS~inflected form of TAV,TEAK~an East Indian tree,TEFF~a cereal grass,THAW~to melt,THEW~a well-developed muscle,TIFF~to have a petty quarrel,TIKE~tyke,TIKI~a wood or stone image of a Polynesian god,TOFF~a dandy|TY,TAK,TUR,TOB,TAF,TUL,TOV,TAC,TUE,TOS,TOC,TEM,TOX,TUS,TIK,TAY,TEF,TEP,THU,TUK,TRA,TAZ,TIO,TEO,TIM,TID,TOL,TUA,TIB,TOF,TRE,TUD,TUF,TIA,TEU,TUC,TEK,TER,TSO,TIEP,TIAR,TOBU,TITT,TOEE,TUDS,TRUP,TILO,TRAJ,TOLO,TUKS
+U|UMS~inflected form of UM,ULU~an Inuit knife,UNI~a university,UNS~inflected form of UN,URD~an annual bean grown in India,URN~a type of vase,UTA~any of a genus of large lizards,UTE~a utility vehicle,UTS~inflected form of UT,UKES~inflected form of UKE,UGHS~inflected form of UGH,UMPS~inflected form of UMP,UNCI~inflected form of UNCUS,URBS~inflected form of URB,URPS~inflected form of URP,UDOS~inflected form of UDO,ULAN~uhlan,ULNA~a bone of the forearm,ULUS~inflected form of ULU,UNAI~unau,UNAU~a two-toed sloth,UNDE~wavy,UNDO~a computer feature that allows the user…,UNIS~inflected form of UNI,UNTO~to,URDS~inflected form of URD,UREA~two amino radicals joined by a carbonyl…,URNS~inflected form of URN,URSA~a female bear,URUS~an extinct European ox,UTAS~inflected form of UTA,UTES~inflected form of UTE,ULVAS~inflected form of ULVA,UVEAL~inflected form of UVEA,UVEAS~inflected form of UVEA,UNIFY~to make into a coherent whole,UNMEW~to set free,UPBYE~a little farther on,UMMAH~umma,UMPHS~inflected form of UMPH,UNCOY~not coy,UNSAW~inflected form of UNSEE,UNSEW~to undo the sewing of,UNWED~not wed,UNWET~not wet,UNWIT~to make insane,UNWON~not won,UPDRY~to dry completely,UMAMI~a taste characteristic of monosodium…,UMBEL~a type of flower cluster|ULE,UTU,UFS,ULA,UBO,UBS,UFA,URL,UNA,UPAW,UMBU,UPBO,UGER,UPHY,UTIN,UNAD,UFER,UNES,UBON,URIS,UMLA,UKAL,URSO,URGA,UBLE,UNWE,UBBE,UNFO,UNDI,UNTA,URIA,UMES,URANE,UNSUS,UNROW,URIZO,UBCOO,UPLER,UNCOP,UTTOR,UNJAS,UNATT,URATI,UROSE,URFER,USUSY,UPSAY,UNEAS,UBNAS,UNKIT
+V|VUM~used to express surprise,VAN~to transport in a certain type of motor…,VAR~a unit of reactive power,VAS~an anatomical duct,VAT~to put into a large container for holding…,VAU~vav,VEE~the letter V,VET~to treat animals medically,VID~a video,VIE~to strive for superiority,VIN~a French wine,VIS~force or power,VOE~a small bay; creek; or inlet,VEXT~inflected form of VEX,VAVS~inflected form of VAV,VAWS~inflected form of VAW,VOWS~inflected form of VOW,VACS~inflected form of VAC,VAGI~inflected form of VAGUS,VEGA~a large plain or valley,VIBE~to be compatible,VICE~to vise,VIGA~a ceiling beam in Spanish architecture,VIGS~inflected form of VIG,VIMS~inflected form of VIM,VLOG~to blog video material,VOGS~inflected form of VOG,VUGS~inflected form of VUG,VAIL~to lower,VAIN~filled with undue admiration for oneself,VAIR~a fur used for lining and trimming…,VALE~a valley,VANE~a device for showing the direction of the…,VANS~inflected form of VAN,VARA~a Spanish unit of length,VARS~inflected form of VAR,VASA~inflected form of VAS,VASE~a rounded; decorative container,VATS~inflected form of VAT,VATU~a monetary unit of Vanuatu,VAUS~inflected form of VAU,VEAL~to kill and prepare a calf for food,VEER~to change direction,VEES~inflected form of VEE,VEIL~to cover the face with fabric,VEIN~to pattern similarly to branching blood…,VELA~inflected form of VELUM,VELD~veldt,VENA~a vein,VEND~to sell|VIH,VUS,VIX,VAE,VAG,VAI,VIC,VEC,VAP,VAK,VOR,VOD,VEN,VEIM,VELO,VIAS,VOUL,VELE,VECE,VATA,VILO,VENN,VEME,VOLS,VEGU,VILT,VOLZ,VIST,VONS,VEIF,VESO,VUGO,VELS,VIGH,VAPU,VEED,VODE,VAHE,VIID,VOLM,VROV,VATE,VULE,VULC,VOWI,VICA,VESA,VAGU,VEOL,VOST
+W|WUZ~inflected form of BE,WEB~to provide with an interlaced fabric,WHA~who,WIG~to provide with an artificial covering of…,WAD~to form into a small mass,WAE~woe,WAN~unnaturally pale,WAT~wet,WEE~very small,WEN~a benign tumor of the skin,WET~covered or saturated with a liquid,WIS~to know,WIT~intelligence,WOE~tremendous grief,WON~WIN; to be victorious,WOO~to seek the affection of,WOS~inflected form of WO,WOT~WIT; to know,WUD~insane,WOVE~inflected form of WEAVE,WOKE~attuned to social justice,WOKS~inflected form of WOK,WONK~an overly studious student,WYCH~a European elm,WAWL~to waul,WAWS~inflected form of WAW,WHEY~the watery part of milk,WOWS~inflected form of WOW,WADY~wadi,WAFT~to carry lightly over air or water,WAIF~to throw away,WALY~visually pleasing,WANY~waning in some parts,WEFT~a filling thread used in weaving,WHAM~to hit with a loud impact,WHAP~to whop,WHIG~one who interprets history as a…,WHIM~an impulsive idea,WHIP~to move suddenly,WHOP~to strike forcibly,WHUP~to defeat decisively,WICH~wych,WILY~crafty,WIMP~to act in a timid manner,WIRY~resembling wire,WOMB~the uterus,WOOF~to utter a gruff barking sound,WYES~inflected form of WYE,WYLE~to beguile,WYND~a narrow street|WAZ,WAC,WUT,WIM,WHE,WEK,WEC,WIE,WAV,WUP,WES,WIC,WOM,WAF,WOP,WUS,WIK,WOF,WOU,WINT,WEGS,WALT,WITL,WIRU,WARA,WHER,WHOD,WOSK,WARF,WALO,WOFE,WIMA,WITT,WITI,WORC,WACH,WURS,WULI,WEAV,WULP,WEEF,WERL,WILK,WANI,WREA,WIKA,WARI,WIRI,WISU,WISK
+X|XEROXING~inflected form of XEROX,XYLOTOMY~the preparation of sections of wood for…,XENOGAMY~the transfer of pollen from one plant to…,XYLOCARP~a hard; woody fruit,XENOGENY~the supposed production of offspring…,XANTHOMA~a skin disease,XIPHOIDS~inflected form of XIPHOID,XYLIDINE~a chemical compound,XYLIDINS~inflected form of XYLIDIN,XYLITOLS~inflected form of XYLITOL,XANTHANS~inflected form of XANTHAN,XANTHATE~a chemical salt,XANTHEIN~the water-soluble part of the coloring…,XANTHENE~a chemical compound,XANTHINE~a chemical compound,XANTHINS~inflected form of XANTHIN,XANTHONE~a chemical compound,XANTHOUS~yellow,XENOLITH~a rock fragment included in another rock,XENOTIME~a yellowish-brown mineral,XEROSERE~a dry-land sere,XYLOGRAPH~to engrave in wood,XYLOPHAGE~an insect that eats wood,XEROPHILY~the botanical capacity to survive drought…,XEROPHYTE~a xerophytic plant,XYLOCARPS~inflected form of XYLOCARP,XYLOPHONE~a musical instrument,XENOCRYST~a crystal not formed with its surrounding…,XENOGRAFT~a graft from a donor of a different species,XENOPHOBE~one who is prejudiced against foreigners,XERICALLY~in a xeric manner,XANTHOMAS~inflected form of XANTHOMA,XENOGENIC~xenogeneic,XENOPHILE~one who is attracted to foreign cultures,XERISCAPE~an area landscaped to minimize the need…,XEROPHILE~a plant that exhibits xerophily,XYLIDINES~inflected form of XYLIDINE,XANTHATES~inflected form of XANTHATE,XANTHEINS~inflected form of XANTHEIN,XANTHENES~inflected form of XANTHENE,XANTHINES~inflected form of XANTHINE,XANTHONES~inflected form of XANTHONE,XENOBLAST~a metamorphic crystal whose shape is…,XENOLITHS~inflected form of XENOLITH,XENOPUSES~inflected form of XENOPUS,XENOTIMES~inflected form of XENOTIME,XERODERMA~a genetic disorder of the skin,XEROSERES~inflected form of XEROSERE,XYLOGRAPHY~making engravings on wood,XEROGRAPHY~a dry photocopying process|XINTHOMA,XYLIMUNS,XYLIDINO,XALOCARP,XYLOTAMY,XANSHENE,XANTHOWA,XANTHANE,XEREXING,XEROXINK,XYLITODS,XIPHUIVS,XARTHATE,XANOTINE,XENOGENO,XANTHALE,XINTHEIN,XENITAME,XELIDILE,XANTHOPE,XYCIDINE,XEROBLAST,XENOLISHH,XANTHEENS,XENOTHOME,XYLOTRAPH,XYLOPHONU,XENOBLADT,XERIFELLY,XERICALLI,XENOTIZES,XYLOPHENE,XENOWHILU,XENOSUSEV,XENEGENIC,XENOPHILO,XANTHEINK,XURICALKY,XINEPUSES,XENOPHILI,XYLOZHONE,XANTHEUNS,XEMOPHYTE,XYLOCERPS,XENORIPHS,XENOMRYST,XINOLITHS,XERUPRILY,XENIGAMIES,XYLOPHUNES
+Y|YAH~used as an exclamation of disgust,YAM~a plant having an edible root,YAP~to bark shrilly,YEH~used to express assent or agreement,YEP~an affirmative reply,YIP~to yelp,YOB~a hooligan,YOM~day,YUM~used to express pleasurable satisfaction,YUP~a yuppie,YAR~yare,YAS~inflected form of YA,YEA~an affirmative vote,YEN~to yearn,YER~you,YIN~the feminine passive principle in Chinese…,YOD~a Hebrew letter,YON~over there,YAKS~inflected form of YAK,YOKS~inflected form of YOK,YOLK~the yellow portion of an egg,YUKE~to yeuk,YUKS~inflected form of YUK,YAWL~to yowl,YAWN~to open the mouth wide with a deep…,YAWS~inflected form of YAW,YEOW~used to express pain or shock,YEWS~inflected form of YEW,YOWE~a ewe,YOWL~to utter a loud; long; mournful cry,YOWS~inflected form of YOW,YWIS~iwis,YAYS~inflected form of YAY,YECH~yecch,YEGG~a burglar,YOGH~a Middle English letter,YOMP~to march with heavy equipment over…,YOOF~youth,YUCH~yucch,YAGE~a tropical vine of the Amazon region,YAGI~a type of shortwave antenna,YAGS~inflected form of YAG,YAMS~inflected form of YAM,YANG~the masculine active principle in Chinese…,YAPS~inflected form of YAP,YAUP~to yawp,YELP~to utter a sharp; shrill cry,YEPS~inflected form of YEP,YIPE~used to express fear or surprise,YIPS~inflected form of YIP|YEC,YAC,YAL,YIK,YUA,YIR,YUC,YAB,YUT,YAT,YIM,YOL,YOT,YUS,YIC,YEL,YOR,YAF,YAUB,YURK,YOLP,YAPP,YESS,YELN,YETZ,YOKU,YOGE,YAHS,YAPH,YOKO,YIND,YOBA,YULP,YLER,YULO,YIRE,YOHL,YABE,YAEN,YELT,YURI,YALS,YUPE,YOUP,YEGH,YOON,YESP,YOGO,YEEZ,YIKR
+Z|ZAS~inflected form of ZA,ZEN~mental calmness,ZIN~a dry red wine,ZIT~a pimple,ZOA~ZOON; the whole product of one fertilized…,ZOO~a place where animals are kept for public…,ZEKS~inflected form of ZEK,ZAGS~inflected form of ZAG,ZAPS~inflected form of ZAP,ZEPS~inflected form of ZEP,ZIGS~inflected form of ZIG,ZIPS~inflected form of ZIP,ZEAL~enthusiastic devotion,ZEDA~grandfather,ZEDS~inflected form of ZED,ZEES~inflected form of ZEE,ZEIN~a simple protein,ZENS~inflected form of ZEN,ZEST~to scrape off and save the colored part…,ZETA~a Greek letter,ZILL~one of a pair of finger cymbals,ZINE~a magazine,ZINS~inflected form of ZIN,ZITI~a tubular pasta,ZITS~inflected form of ZIT,ZOEA~a larval form of certain crustaceans,ZONA~a transparent substance surrounding the…,ZOON~the whole product of one fertilized egg,ZOOS~inflected form of ZOO,ZORI~a type of sandal,ZUZIM~inflected form of ZUZ,ZAXES~inflected form of ZAX,ZERKS~inflected form of ZERK,ZONKS~inflected form of ZONK,ZOUKS~inflected form of ZOUK,ZUKES~inflected form of ZUKE,ZYMES~inflected form of ZYME,ZARFS~inflected form of ZARF,ZAYIN~a Hebrew letter,ZEBEC~xebec,ZESTY~marked by zest,ZILCH~nothing,ZIPPO~nothing,ZLOTY~a monetary unit of Poland,ZOMBI~zombie,ZOOEY~resembling a zoo,ZOOTY~flashy in manner or style,ZUPPA~a fish soup,ZAMIA~a tropical plant,ZEBRA~an African mammal that is related to the…|ZAH,ZER,ZON,ZAF,ZUG,ZIM,ZUPS,ZILC,ZARI,ZOEC,ZADS,ZERU,ZIRS,ZELS,ZEBS,ZENG,ZEBO,ZERT,ZINT,ZEAG,ZEUR,ZAAN,ZINO,ZEMA,ZIBI,ZOAM,ZUCE,ZETS,ZETT,ZEBA,ZONUL,ZINAU,ZAMPA,ZYMEG,ZORIT,ZENES,ZANCY,ZLOTU,ZOWER,ZOSTE,ZOMBO,ZIGAB,ZANER,ZEROL,ZERRA,ZEBRU,ZOOIL,ZANZI,ZONAI,ZINOS
+#END`;
+
+const VAL={A:1,B:3,C:3,D:2,E:1,F:4,G:2,H:4,I:1,J:8,K:5,L:1,M:3,N:1,O:1,P:3,Q:10,R:1,S:1,T:1,U:1,V:4,W:4,X:8,Y:4,Z:10};
+const AL="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+/* ---- parse the word bank ---- */
+const BANK={}, ALLW=[];
+for(const line of RAW.split("\n")){
+  if(!line || line[0]==="#") continue;
+  const [L,reals,fakes]=line.split("|");
+  if(!L||!reals||!fakes) continue;
+  const items=[];
+  for(const ent of reals.split(",")){
+    const i=ent.indexOf("~"); if(i<0) continue;
+    if(i===2) continue; // two-letter words come from TWO below
+    items.push({w:ent.slice(0,i),real:true,def:ent.slice(i+1)});
+  }
+  for(const w of fakes.split(",")) if(w && w.length!==2) items.push({w:w,real:false,def:""});
+  BANK[L]=(BANK[L]||[]).concat(items); ALLW.push(...items);
+}
+
+/* ---- all 676 two-letter combinations: the 107 valid NWL2023 twos, everything else phoney ---- */
+const TWO_RAW="AA~rough; cindery lava,AB~an abdominal muscle,AD~an advertisement,AE~one,AG~agriculture,AH~to exclaim in amazement,AI~a three-toed sloth,AL~an East Indian tree,AM~a form of BE,AN~one; any,AR~the letter R,AS~to the same degree,AT~in the position of,AW~used to express protest or sympathy,AX~to work on with an ax,AY~aye; yes,BA~the eternal soul in Egyptian mythology,BE~to exist,BI~a bisexual,BO~a pal,BY~a side issue,DA~dad,DE~of; from,DO~to perform,ED~education,EF~the letter F,EH~used to express doubt or surprise,EL~an elevated railroad,EM~a typographic unit,EN~half of an em,ER~used to express hesitation,ES~the letter S,ET~a past tense of EAT,EW~used to express disgust,EX~to cross out,FA~the fourth tone of the scale,FE~a Hebrew letter,GI~a garment worn in martial arts,GO~to move along,HA~a sound of surprise,HE~a male person,HI~used as a greeting,HM~used to express thoughtful consideration,HO~used to express surprise,ID~a part of the psyche,IF~a possibility,IN~to harvest,IS~a form of BE,IT~a neuter pronoun,JO~a sweetheart,KA~the spiritual self in Egyptian religion,KI~qi,LA~the sixth tone of the scale,LI~a Chinese unit of distance,LO~used to attract attention,MA~mother,ME~the objective case of I,MI~the third tone of the scale,MM~used to express assent,MO~a moment,MU~a Greek letter,MY~used to express surprise,NA~no; not,NE~born with the name of,NO~a negative reply,NU~a Greek letter,OD~a hypothetical natural force,OE~a whirlwind off the Faeroe Islands,OF~coming from,OH~to exclaim in surprise,OI~oy,OK~all right,OM~a mantra,ON~the batsman's side in cricket,OP~a style of abstract art,OR~the heraldic color gold,OS~a bone,OW~used to express sudden pain,OX~a hoofed mammal,OY~used to express dismay,PA~a father,PE~a Hebrew letter,PI~a Greek letter,PO~a chamber pot,QI~the vital force in Chinese thought,RE~the second tone of the scale,SH~used to urge silence,SI~ti,SO~the fifth tone of the scale,TA~an expression of gratitude,TE~ti,TI~the seventh tone of the scale,TO~in the direction of,UH~used to express hesitation,UM~to hesitate in speaking,UN~one,UP~to raise,US~the objective case of WE,UT~the tone C in French solmization,WE~the first person plural pronoun,WO~woe,XI~a Greek letter,XU~a monetary unit of Vietnam,YA~you,YE~you,YO~used to call attention,ZA~a pizza";
+const TWO_DEF={};
+for(const ent of TWO_RAW.split(",")){ const i=ent.indexOf("~"); TWO_DEF[ent.slice(0,i)]=ent.slice(i+1); }
+const TWOS=[];
+for(const a of "ABCDEFGHIJKLMNOPQRSTUVWXYZ") for(const b of "ABCDEFGHIJKLMNOPQRSTUVWXYZ"){
+  const w=a+b, real=w in TWO_DEF;
+  const it={w:w,real:real,def:real?TWO_DEF[w]:""};
+  TWOS.push(it); BANK[a]=(BANK[a]||[]).concat(it); ALLW.push(it);
+}
+
+/* ---- state ---- */
+const S={letter:"A",deck:[],i:0,cur:null,answered:false,
+  total:0,right:0,streak:0,best:0,log:[],misses:[],per:{}};
+for(const L of AL) S.per[L]={t:0,r:0};
+S.per["2"]={t:0,r:0};
+
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const $=id=>document.getElementById(id);
+
+function buildDeck(){
+  const src = S.letter==="ALL" ? ALLW : S.letter==="2" ? TWOS : (BANK[S.letter]||[]);
+  S.deck=shuffle(src.slice()); S.i=0;
+}
+
+function buildRail(){
+  const rail=$("rail"); rail.innerHTML="";
+  for(const key of ["ALL","2",...AL]){
+    const b=document.createElement("button");
+    b.className="chip"+(key==="ALL"||key==="2"?" all":"");
+    b.title = key==="2" ? "All 676 two-letter combinations" : key==="ALL" ? "Every word" : "Words starting with "+key;
+    b.setAttribute("role","tab");
+    b.setAttribute("aria-selected", key===S.letter ? "true":"false");
+    b.dataset.k=key;
+    const rec = key==="ALL" ? null : S.per[key];
+    b.innerHTML='<span class="l">'+(key==="ALL"?"ALL":key==="2"?"2s":key)+'</span><span class="f">'+
+      (rec&&rec.t ? rec.r+"/"+rec.t : "")+'</span>';
+    b.onclick=()=>{ S.letter=key; buildDeck(); buildRail(); nextWord(); };
+    rail.appendChild(b);
+  }
+}
+
+function renderTiles(word,animate){
+  const t=$("tiles"); t.innerHTML="";
+  [...word].forEach((ch,n)=>{
+    const d=document.createElement("div");
+    d.className="tile"+(animate?" flip":"");
+    if(animate) d.style.animationDelay=(n*35)+"ms";
+    d.innerHTML=ch+'<sup>'+VAL[ch]+'</sup>';
+    t.appendChild(d);
+  });
+}
+
+function nextWord(){
+  if(S.i>=S.deck.length) buildDeck();
+  S.cur=S.deck[S.i++]; S.answered=false;
+  renderTiles(S.cur.w,true);
+  $("verdict").hidden=true; $("actions").style.display="";
+  $("prompt").textContent="Your opponent plays this. Do you challenge?";
+}
+
+function score(word){
+  return [...word].reduce((s,c)=>s+VAL[c],0);
+}
+
+function answer(saidGood){
+  if(S.answered||!S.cur) return;
+  S.answered=true;
+  const c=S.cur, correct=(saidGood===c.real);
+  S.total++; S.per[c.w[0]].t++; if(c.w.length===2) S.per["2"].t++;
+  if(correct){ S.right++; S.per[c.w[0]].r++; if(c.w.length===2) S.per["2"].r++; S.streak++; S.best=Math.max(S.best,S.streak); }
+  else { S.streak=0; S.misses.unshift(c); }
+  S.log.unshift(correct);
+  recordLifetime(c, correct);
+
+  $("actions").style.display="none";
+  const badge=$("badge"), ruling=$("ruling");
+  badge.className="badge "+(correct?"win":"lose");
+  badge.textContent = correct ? (c.real?"Correctly let stand":"Good challenge") : (c.real?"Bad challenge":"It slipped past you");
+  ruling.innerHTML = c.real
+    ? "<b>"+c.w+"</b> is good. <em>"+c.def+"</em>"
+    : "<b>"+c.w+"</b> is not in the dictionary.";
+  $("pv").textContent = c.real ? score(c.w)+" points face value" : "";
+  $("prompt").textContent = correct ? "Ruling upheld." : "Ruling reversed.";
+  $("verdict").hidden=false;
+  $("bNext").focus();
+  paint();
+}
+
+function paint(){
+  $("sAcc").textContent = S.total ? Math.round(S.right/S.total*100)+"%" : "—";
+  $("sCount").textContent = S.total;
+  $("sStreak").textContent = S.streak;
+
+  const pips=$("pips"); pips.innerHTML="";
+  const shown=S.log.slice(0,25);
+  for(let n=0;n<25;n++){
+    const d=document.createElement("span");
+    d.className="pip"+(n<shown.length ? (shown[n]?" y":" n") : "");
+    pips.appendChild(d);
+  }
+  $("pipsEmpty").hidden = S.total>0;
+  if(S.total>0){
+    $("pipsEmpty").hidden=false;
+    $("pipsEmpty").className="";
+    $("pipsEmpty").style.cssText="font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:0";
+    $("pipsEmpty").textContent="Best streak "+S.best+" · most recent at left";
+  }
+
+  const ul=$("misses"); ul.innerHTML="";
+  for(const m of S.misses.slice(0,40)){
+    const li=document.createElement("li");
+    li.innerHTML='<span class="w">'+m.w+'</span>'+
+      '<span class="t '+(m.real?"r":"f")+'">'+(m.real?"good":"phoney")+'</span>'+
+      '<span class="d">'+(m.real?m.def:"not a word")+'</span>';
+    ul.appendChild(li);
+  }
+  $("missEmpty").hidden = S.misses.length>0;
+
+  document.querySelectorAll(".chip").forEach(ch=>{
+    const k=ch.dataset.k;
+    ch.setAttribute("aria-selected", k===S.letter?"true":"false");
+    if(k!=="ALL"){ const r=S.per[k]; ch.querySelector(".f").textContent = r.t ? r.r+"/"+r.t : ""; }
+  });
+}
+
+$("bGood").onclick=()=>answer(true);
+$("bPhoney").onclick=()=>answer(false);
+$("bNext").onclick=nextWord;
+$("bReset").onclick=()=>{
+  S.total=S.right=S.streak=S.best=0; S.log=[]; S.misses=[];
+  for(const L of AL) S.per[L]={t:0,r:0};
+  S.per["2"]={t:0,r:0};
+  buildDeck(); nextWord(); paint();
+};
+document.addEventListener("keydown",e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  const k=e.key.toLowerCase();
+  if(!S.answered && (k==="g")){ e.preventDefault(); answer(true); }
+  else if(!S.answered && (k==="p")){ e.preventDefault(); answer(false); }
+  else if(S.answered && (k==="enter"||k===" ")){ e.preventDefault(); nextWord(); }
+});
+
+/* =====================================================================
+   SAVED STATS + LEADERBOARD
+   Everything that touches storage lives in STORE below. To move to your
+   own backend later (e.g. Supabase), rewrite only STORE's four functions:
+     init() -> {id, canBoard}   load() -> stats|null
+     save(stats)                watchBoard(cb) -> rows [{id, ...stats}]
+   ===================================================================== */
+const MIN_RANKED = 50;   // words judged before you appear in the accuracy ranking
+const blankLife = () => ({judged:0, right:0, best:0, twosJudged:0, twosRight:0, per:{}, updatedAt:0});
+let LIFE = blankLife(), RUN = 0;   // RUN = current all-time streak (carries across sessions on this page)
+
+const STORE = (() => {
+  let db=null, user=null, uid=null;
+  const LS_KEY="phoney-patrol:lifetime";
+  const lsGet=()=>{ try{ return JSON.parse(localStorage.getItem(LS_KEY)||"null"); }catch(e){ return null; } };
+  const lsSet=v=>{ try{ localStorage.setItem(LS_KEY, JSON.stringify(v)); }catch(e){} };
+  return {
+    async init(){
+      try{
+        if(window.claude && typeof window.claude.use==="function"){
+          [db,user]=await Promise.all([claude.use("db"), claude.use("user")]);
+          uid = user ? await user.id() : null;
+        }
+      }catch(e){ db=null; }
+      return {id:uid, canBoard: !!(db && uid), user};
+    },
+    async load(){
+      if(db && uid){
+        try{ const snap=await db.doc("scores/"+uid).get(); if(snap.exists) return snap.data(); }
+        catch(e){}
+        return null;
+      }
+      return lsGet();
+    },
+    async save(stats){
+      lsSet(stats);   // always keep a local copy too
+      if(db && uid) await db.doc("scores/"+uid).set(stats);
+    },
+    watchBoard(cb, onErr){
+      if(!db) return ()=>{};
+      return db.collection("scores").limit(1000).onSnapshot(
+        q=>cb(q.docs.filter(d=>d.exists).map(d=>Object.assign({id:d.id}, d.data()))),
+        e=>onErr && onErr(e));
+    }
+  };
+})();
+
+let ME={id:null, canBoard:false, user:null}, BOARD=[], RANK_BY="acc";
+
+function recordLifetime(c, correct){
+  LIFE.judged++; if(correct) LIFE.right++;
+  if(c.w.length===2){ LIFE.twosJudged++; if(correct) LIFE.twosRight++; }
+  const L=c.w[0]; const p=LIFE.per[L]||(LIFE.per[L]={t:0,r:0}); p.t++; if(correct) p.r++;
+  RUN = correct ? RUN+1 : 0;
+  LIFE.best=Math.max(LIFE.best, RUN, S.best);
+  LIFE.updatedAt=Date.now();
+  renderMine(); queueSave(); if(ME.canBoard) boardSoon();
+}
+
+/* one write at a time, coalesced: saves ~1.2s after you stop answering */
+let saveTimer=null, saving=false, dirty=false;
+function queueSave(){ dirty=true; clearTimeout(saveTimer); saveTimer=setTimeout(flushSave,1200); }
+async function flushSave(){
+  if(saving||!dirty) return;
+  saving=true; dirty=false; $("saveState").textContent="Saving…";
+  try{ await STORE.save(JSON.parse(JSON.stringify(LIFE)));
+       $("saveState").textContent = ME.canBoard ? "All-time stats saved" : "Saved in this browser"; }
+  catch(e){ $("saveState").textContent="Couldn’t save just now — will retry"; dirty=true; }
+  saving=false;
+  if(dirty) setTimeout(flushSave,3000);
+}
+window.addEventListener("pagehide", ()=>{ if(dirty) flushSave(); });
+
+const pct=(r,t)=>t? Math.round(r/t*1000)/10 : 0;
+
+function renderMine(){
+  const m=$("mine");
+  if(!LIFE.judged){ m.innerHTML='<span>Your all-time stats will appear after your first ruling.</span>'; return; }
+  m.innerHTML='<span>You, all-time: <b>'+pct(LIFE.right,LIFE.judged)+'%</b></span>'+
+    '<span>judged <b>'+LIFE.judged.toLocaleString()+'</b></span>'+
+    '<span>best streak <b>'+LIFE.best+'</b></span>'+
+    (LIFE.twosJudged?'<span>2s <b>'+pct(LIFE.twosRight,LIFE.twosJudged)+'%</b></span>':'');
+}
+
+async function renderBoard(){
+  const ol=$("rank"), note=$("boardNote");
+  if(!ME.canBoard){ ol.innerHTML=""; note.hidden=false;
+    note.textContent="Leaderboard is available when this page is opened on claude.ai while signed in. Your stats are saved in this browser."; return; }
+  let rows=BOARD.filter(r=>r.judged>0);
+  // keep your own row current even before the save round-trips
+  if(ME.id && LIFE.judged){ rows=rows.filter(r=>r.id!==ME.id); rows.push(Object.assign({id:ME.id},LIFE)); }
+  let warming=0;
+  if(RANK_BY==="acc"){
+    warming=rows.filter(r=>r.judged<MIN_RANKED).length;
+    rows=rows.filter(r=>r.judged>=MIN_RANKED)
+      .sort((a,b)=> (b.right/b.judged)-(a.right/a.judged) || b.judged-a.judged);
+  } else {
+    rows=rows.filter(r=>r.best>0).sort((a,b)=> b.best-a.best || (b.right/b.judged)-(a.right/a.judged));
+  }
+  rows=rows.slice(0,50);
+  const ps = ME.user && rows.length ? await ME.user.profiles(rows.map(r=>r.id)) : {};
+  ol.innerHTML="";
+  rows.forEach((r,i)=>{
+    const p=ps[r.id]||{}, me=r.id===ME.id;
+    const li=document.createElement("li"); if(me) li.className="me";
+    const n=document.createElement("span"); n.className="n"; n.textContent=i+1;
+    const img=document.createElement("img"); img.alt=""; if(p.avatarUrl) img.src=p.avatarUrl;
+    const who=document.createElement("span"); who.className="who";
+    who.textContent = me ? ((p.name||"You")) : (p.name||"Someone");
+    if(me){ const t=document.createElement("small"); t.textContent="YOU"; who.appendChild(t); }
+    const v=document.createElement("span"); v.className="v";
+    const acc=pct(r.right,r.judged);
+    if(RANK_BY==="acc"){ v.textContent=acc+"%"; const s=document.createElement("small"); s.textContent=r.judged.toLocaleString()+" judged"; v.appendChild(s); }
+    else { v.textContent=r.best; const s=document.createElement("small"); s.textContent=acc+"% acc"; v.appendChild(s); }
+    li.append(n,img,who,v); ol.appendChild(li);
+  });
+  let msg="";
+  if(!rows.length) msg = RANK_BY==="acc" ? "No one has judged "+MIN_RANKED+" words yet. Be the first on the board." : "No streaks yet. Start ruling.";
+  if(RANK_BY==="acc" && warming) msg += (msg?" ":"")+warming+(warming===1?" player is":" players are")+" warming up (fewer than "+MIN_RANKED+" judged).";
+  if(RANK_BY==="acc" && LIFE.judged && LIFE.judged<MIN_RANKED) msg += " You need "+(MIN_RANKED-LIFE.judged)+" more to be ranked.";
+  note.textContent=msg.trim(); note.hidden=!msg;
+}
+
+function setRank(k){ RANK_BY=k; $("rkAcc").setAttribute("aria-pressed",k==="acc"); $("rkStreak").setAttribute("aria-pressed",k==="streak"); renderBoard(); }
+$("rkAcc").onclick=()=>setRank("acc");
+$("rkStreak").onclick=()=>setRank("streak");
+
+/* debounce board renders so rapid answering doesn't thrash profiles() */
+let boardT=null; const boardSoon=()=>{ clearTimeout(boardT); boardT=setTimeout(renderBoard,250); };
+
+(async()=>{
+  renderMine();
+  ME = await STORE.init();
+  const saved = await STORE.load();
+  if(saved){
+    // merge anything answered while we were connecting
+    const add=LIFE; LIFE=Object.assign(blankLife(), saved);
+    LIFE.per=Object.assign({}, saved.per||{});
+    LIFE.judged+=add.judged; LIFE.right+=add.right; LIFE.twosJudged+=add.twosJudged; LIFE.twosRight+=add.twosRight;
+    for(const k in add.per){ const p=LIFE.per[k]||(LIFE.per[k]={t:0,r:0}); p.t+=add.per[k].t; p.r+=add.per[k].r; }
+    LIFE.best=Math.max(LIFE.best, add.best);
+    if(add.judged) queueSave();
+  }
+  renderMine();
+  if(ME.canBoard){
+    STORE.watchBoard(rows=>{ BOARD=rows; boardSoon(); },
+      ()=>{ $("boardNote").hidden=false; $("boardNote").textContent="Leaderboard connection dropped. Reload to reconnect."; });
+  }
+  renderBoard();
+})();
+
+function buildTwos(){
+  const g=$("twogrid"); g.innerHTML="";
+  for(const L of AL){
+    const real=TWOS.filter(t=>t.w[0]===L&&t.real);
+    const row=document.createElement("div"); row.className="tr";
+    row.innerHTML='<b>'+L+'</b><div class="ws">'+(real.length
+      ? real.map(t=>'<span class="tw" title="'+t.w+': '+t.def.replace(/"/g,"&quot;")+'">'+t.w+'</span>').join("")
+      : '<span class="none">none &mdash; every '+L+'_ is phoney</span>')+'</div>';
+    g.appendChild(row);
+  }
+  const nReal=TWOS.filter(t=>t.real).length;
+  $("twosSum").textContent=nReal+" good \u00b7 "+(676-nReal)+" phoney";
+  $("nWords").textContent=ALLW.length.toLocaleString();
+}
+
+buildTwos(); buildRail(); buildDeck(); nextWord(); paint();
+</script>
+</body>
+</html>

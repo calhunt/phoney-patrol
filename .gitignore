@@ -1,0 +1,19 @@
+# Secrets: never commit these. The Supabase service_role key belongs ONLY here.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+supabase/.temp/
+supabase/.branches/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Dependencies / build output (if added later)
+node_modules/
+dist/
